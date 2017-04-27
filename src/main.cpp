@@ -173,6 +173,10 @@ void getInput(float dt) {
 			case SDLK_SPACE:
 				bullets->shootBullet();
 				break;
+			case SDLK_ESCAPE:
+				//SDL_SetRelativeMouseMode(SDL_FALSE);
+				SDL_GetRelativeMouseMode ? SDL_SetRelativeMouseMode(SDL_FALSE) : SDL_SetRelativeMouseMode(SDL_TRUE);
+				break;
 			case SDLK_k:
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glDisable(GL_BLEND);
@@ -187,36 +191,29 @@ void getInput(float dt) {
 			case SDLK_F11:
 				SDL_SetWindowFullscreen(win, 0);
 				break;
-			case SDLK_LEFT:
-				cam.processKeyboard(LEFT, dt);
-				break;
-			case SDLK_RIGHT:
-				cam.processKeyboard(RIGHT, dt);
-				break;
-			case SDLK_UP:
-				cam.processKeyboard(FORWARD, dt);
-				break;
-			case SDLK_DOWN:
-				cam.processKeyboard(BACKWARD, dt);
-				break;
 			default:
 				break;
 			}
+			if (ev.key.keysym.sym == SDLK_UP)
+				cam.processKeyboard(FORWARD, dt);
+			if (ev.key.keysym.sym == SDLK_DOWN)
+				cam.processKeyboard(BACKWARD, dt);
+			if (ev.key.keysym.sym == SDLK_LEFT)
+				cam.processKeyboard(LEFT, dt);
+			if (ev.key.keysym.sym == SDLK_RIGHT)
+				cam.processKeyboard(RIGHT, dt);
+			if (ev.key.keysym.sym == SDLK_SPACE)
+				cam.processKeyboard(UP, dt);
+			if (ev.key.keysym.sym == SDLK_LCTRL)
+				cam.processKeyboard(DOWN, dt);
 		}
-		if (ev.type == SDL_WINDOWEVENT) {
+		else if (ev.type == SDL_WINDOWEVENT) {
 			if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
 				resizeWindow();
 			}
 		}
-		if (ev.type == SDL_QUIT) {
+		else if (ev.type == SDL_QUIT) {
 			gs->isGameRunning = false;
-		}
-		//camera
-		if (ev.type = SDL_MOUSEWHEEL) {
-			cam.processMouseScroll((GLfloat)ev.wheel.y);
-		}
-		if (ev.type = SDL_MOUSEMOTION) {
-			cam.processMouseMovement((GLfloat)ev.motion.xrel, (GLfloat)ev.motion.yrel, false);
 		}
 	}
 }
@@ -377,15 +374,16 @@ void render() {
 	 
 	if (!gs->gameover) {
 
-		glUseProgram(sprog_arr[8]);
+		//glUseProgram(sprog_arr[8]);
 		glm::mat4 view = cam.getViewMatrix();
 		glm::mat4 projection = glm::perspective(cam.zoom, (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
+		GLint modelLoc = glGetUniformLocation(sprog_arr[8], "model");
 		GLint viewLoc = glGetUniformLocation(sprog_arr[8], "view");
 		GLint projLoc = glGetUniformLocation(sprog_arr[8], "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-		//glUseProgram(sprog_arr[8]);
+		glUseProgram(sprog_arr[8]);
 		glm::mat4 model;
 		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -5.0f));
 		glUniformMatrix4fv(glGetUniformLocation(sprog_arr[8], "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -698,13 +696,15 @@ int main(int argc, char *argv[]) {
 
 	std::cout << "Attempting to load model" << std::endl;
 	//model testmodel("bin/assets/cube/cube.obj");
-	mTest->loadModel("bin/assets/cube/cube.obj");
+	mTest->loadModel("bin/assets/cube/sphere.obj");
 	std::cout << "Cube loaded. Attempting to create shader:" << std::endl;
 	sprog_arr.push_back(mTest->createShaderProgram());
 	std::cout << "Shader created" << std::endl;
 
 	
 	std::cout << "OPENGL Version: " << glGetString(GL_VERSION) << std::endl;
+
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 	while (gs->isGameRunning) {
 		prevtime = currenttime;
 		currenttime = SDL_GetTicks();
@@ -714,7 +714,7 @@ int main(int argc, char *argv[]) {
 		getInput(deltatime);
 
 		if (frametime >= 0.01667f) {
-			update();
+			//update();
 
 			frametime = 0.0f;
 		}
@@ -781,6 +781,7 @@ int main(int argc, char *argv[]) {
 		render();
 	}
 
+	delete mTest;
 	delete player;
 
 	SDL_Log("Finished. Cleaning up and closing down\n");
