@@ -174,8 +174,8 @@ void getInput(float dt) {
 				bullets->shootBullet();
 				break;
 			case SDLK_ESCAPE:
-				//SDL_SetRelativeMouseMode(SDL_FALSE);
-				SDL_GetRelativeMouseMode ? SDL_SetRelativeMouseMode(SDL_FALSE) : SDL_SetRelativeMouseMode(SDL_TRUE);
+				SDL_Quit();
+				gs->isGameRunning = false;
 				break;
 			case SDLK_k:
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -376,17 +376,17 @@ void render() {
 
 		//glUseProgram(sprog_arr[8]);
 		glm::mat4 view = cam.getViewMatrix();
-		glm::mat4 projection = glm::perspective(cam.zoom, (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
 		GLint modelLoc = glGetUniformLocation(sprog_arr[8], "model");
 		GLint viewLoc = glGetUniformLocation(sprog_arr[8], "view");
 		GLint projLoc = glGetUniformLocation(sprog_arr[8], "projection");
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
 
 		glUseProgram(sprog_arr[8]);
 		glm::mat4 model;
 		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -5.0f));
-		glUniformMatrix4fv(glGetUniformLocation(sprog_arr[8], "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model * cam.cameraRotationMatrix));
 		mTest->Draw(sprog_arr[8]);
 
 
@@ -696,15 +696,13 @@ int main(int argc, char *argv[]) {
 
 	std::cout << "Attempting to load model" << std::endl;
 	//model testmodel("bin/assets/cube/cube.obj");
-	mTest->loadModel("bin/assets/cube/sphere.obj");
+	mTest->loadModel("bin/assets/cube/cube.obj");
 	std::cout << "Cube loaded. Attempting to create shader:" << std::endl;
 	sprog_arr.push_back(mTest->createShaderProgram());
 	std::cout << "Shader created" << std::endl;
 
 	
 	std::cout << "OPENGL Version: " << glGetString(GL_VERSION) << std::endl;
-
-	SDL_SetRelativeMouseMode(SDL_TRUE);
 	while (gs->isGameRunning) {
 		prevtime = currenttime;
 		currenttime = SDL_GetTicks();

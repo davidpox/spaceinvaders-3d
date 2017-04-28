@@ -23,7 +23,7 @@ const GLfloat YAW = -90.0f;
 const GLfloat PITCH = 0.0f;
 const GLfloat SPEED = 0.1f;
 const GLfloat SENSITIVITY = 0.25f;
-const GLfloat ZOOM = 1.0f;
+const GLfloat ZOOM = 45.0f;
 
 class camera
 {
@@ -68,6 +68,9 @@ public:
 	glm::vec3 up;
 	glm::vec3 right;
 	glm::vec3 worldup;
+
+	GLfloat camera_angle;
+	glm::mat4 cameraRotationMatrix;
 
 	GLfloat yaw;
 	GLfloat pitch;
