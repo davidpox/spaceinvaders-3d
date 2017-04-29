@@ -12,30 +12,22 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class alien
+#include "model.h"
+
+class alien : public model
 {
 public:
 	alien();
 	~alien();
 
-	GLuint createSprite(std::string pic);
-	GLuint createShaderProgram();
-	void moveAlien(SDL_Keycode dir);
-	void arrange(float xOffset, float yOffset);
+	model Model;
 
-	void changeTexture();
+	void moveAlien(SDL_Keycode dir);
+
 	float timer;
 	int spinofftimer;
 	bool isDead;
 	int currentAnimState;
-
-	glm::vec3 position = { -0.875f, 0.915f, 0.0f };
-	glm::vec3 distTravelled = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 posFromStart = { 0.0f, 0.0f, 0.0f };
-	SDL_Surface* img;
-	GLuint VAO, VBO, EBO, texture;
-	glm::mat4 _transRotate, _transTranslate, _transScale;
-	float h, w;
 
 };
 

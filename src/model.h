@@ -24,7 +24,13 @@ public:
 	model(GLchar* path);
 	~model();
 
-	glm::vec3 position{ -10.0f, 10.0f, 0.0f };
+	bool isDead;
+	int currentAnimState;
+
+
+	glm::vec3 position{ 0.0f, 0.0f, 0.0f };
+	float h;
+	float w;
 	
 	std::vector<Texture> textures_loaded;
 	std::vector<Mesh> meshes;
@@ -36,6 +42,8 @@ public:
 	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
 	GLuint createShaderProgram();
 	void Draw(GLuint shader);
+
+	glm::mat4 _transRotate, _transTranslate, _transScale;
 
 
 
