@@ -15,14 +15,18 @@ void camera::processKeyboard(Camera_Movement direction, GLfloat dt) {
 		position += front * velocity;
 	if (direction == BACKWARD)
 		position -= front * velocity;
-	if (direction == LEFT) {
+	if (direction == ROTL) {
 		camera_angle = glm::radians(-1.0f);
 		cameraRotationMatrix = glm::rotate(cameraRotationMatrix, camera_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 	}		
-	if (direction == RIGHT) {
+	if (direction == ROTR) {
 		camera_angle = glm::radians(1.0f);
 		cameraRotationMatrix = glm::rotate(cameraRotationMatrix, camera_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
+	if (direction == LEFT)
+		position -= right * velocity;
+	if (direction == RIGHT)
+		position += right * velocity;
 	if (direction == UP)
 		position += up * velocity;
 	if (direction == DOWN)

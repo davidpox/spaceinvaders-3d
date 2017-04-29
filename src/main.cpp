@@ -34,16 +34,17 @@ SDL_GLContext mainContext;
 PlayerShip *player = new PlayerShip();
 bullet *bullets = new bullet("player");
 bullet *alienBullet = new bullet("alien");
-alien *aliens = new alien();
+//alien *aliens = new alien();
 shotHandler *sh = new shotHandler();
 gamestate *gs = new gamestate();
-camera cam(glm::vec3(0.0f, 0.0f, 3.0f));
+camera cam(glm::vec3(0.0f, 0.0f, 30.0f));
 model *mTest = new model();
 
 
 std::vector<GLuint> sprog_arr;
 std::vector<GLuint> vao_arr;
 std::vector<alien> alien_arr;
+std::vector<model> aliens;
 std::vector<barrier> barrier_arr;
 std::vector<TextHandler *> text_arr;
 std::vector<PlayerShip *> lives_arr;
@@ -194,18 +195,23 @@ void getInput(float dt) {
 			default:
 				break;
 			}
-			if (ev.key.keysym.sym == SDLK_UP)
+			if (ev.key.keysym.sym == SDLK_KP_8)
 				cam.processKeyboard(FORWARD, dt);
-			if (ev.key.keysym.sym == SDLK_DOWN)
+			if (ev.key.keysym.sym == SDLK_KP_5)
 				cam.processKeyboard(BACKWARD, dt);
-			if (ev.key.keysym.sym == SDLK_LEFT)
+			if (ev.key.keysym.sym == SDLK_KP_4)
 				cam.processKeyboard(LEFT, dt);
-			if (ev.key.keysym.sym == SDLK_RIGHT)
+			if (ev.key.keysym.sym == SDLK_KP_6)
 				cam.processKeyboard(RIGHT, dt);
-			if (ev.key.keysym.sym == SDLK_SPACE)
-				cam.processKeyboard(UP, dt);
-			if (ev.key.keysym.sym == SDLK_LCTRL)
+			if (ev.key.keysym.sym == SDLK_KP_7)
 				cam.processKeyboard(DOWN, dt);
+			if (ev.key.keysym.sym == SDLK_KP_9)
+				cam.processKeyboard(UP, dt);
+			if (ev.key.keysym.sym == SDLK_KP_1)
+				cam.processKeyboard(ROTL, dt);
+			if (ev.key.keysym.sym == SDLK_KP_3)
+				cam.processKeyboard(ROTR, dt);
+
 		}
 		else if (ev.type == SDL_WINDOWEVENT) {
 			if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -367,27 +373,42 @@ void update() {
 
 void render() {
 
-	glm::vec4 backgroundColour = glm::vec4(0, 0, 0, 1.0);		// R, G, B, A
+	//std::cout << "Rendering" << std::endl;
+
+	glm::vec4 backgroundColour = glm::vec4(0.1, 0.1, 0.1, 1.0);		// R, G, B, A
 	glClearColor(backgroundColour[0], backgroundColour[1], backgroundColour[2], backgroundColour[3]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	 
 	if (!gs->gameover) {
 
-		//glUseProgram(sprog_arr[8]);
+		
 		glm::mat4 view = cam.getViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
-		GLint modelLoc = glGetUniformLocation(sprog_arr[8], "model");
-		GLint viewLoc = glGetUniformLocation(sprog_arr[8], "view");
-		GLint projLoc = glGetUniformLocation(sprog_arr[8], "projection");
+		GLint modelLoc = glGetUniformLocation(sprog_arr[2], "model");
+		GLint viewLoc = glGetUniformLocation(sprog_arr[2], "view");
+		GLint projLoc = glGetUniformLocation(sprog_arr[2], "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
 
-		glUseProgram(sprog_arr[8]);
-		glm::mat4 model;
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -5.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model * cam.cameraRotationMatrix));
-		mTest->Draw(sprog_arr[8]);
+		glUseProgram(sprog_arr[2]);
+		//glm::mat4 model;
+		//model = glm::translate(model, glm::vec3(0.0f, 0.0f, -5.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));// *cam.cameraRotationMatrix));
+		
+		for (int i = 0; i < aliens.size(); i++) {
+			GLint modelLoc = glGetUniformLocation(vao_arr[i + 2], "model");
+			glm::mat4 model;
+			model = glm::scale(model, glm::vec3{});
+			model = glm::translate(model, glm::vec3(aliens[i].position.x, aliens[i].position.y, -5.0f));
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			
+			
+			aliens[i].Draw(sprog_arr[2]);
+		}
+	//	mTest->Draw(sprog_arr[8]);
+
+
 
 
 	//	//glUseProgram(sprog_arr[6]);
@@ -542,26 +563,35 @@ bool checkCollisions(A a, B b) {
 void setupAliens() {
 	float xOffset = 0.0f;	// used to initialise positions
 	float yOffset = 0.0f;
+	int count = 0;
 
 	/* Fill alien vector with aliens */
 	for (int i = 0; i < 55; i++) {
-		alien_arr.push_back(alien());
+		aliens.push_back(model("bin/assets/models/spaceinvader.obj"));
 	}
-	/* Then create VAOs for each alien. */
-	for (int i = 0; i < alien_arr.size(); i++) {
-		vao_arr.push_back(alien_arr[i].createSprite("alien1"));
-	}
+	std::cout << aliens.size() << " aliens created" << std::endl;
 
-	for (int i = 0; i < alien_arr.size(); i++) {
+	/* Then create VAOs for each alien. */
+	for (int i = 0; i < aliens.size(); i++) {
+		vao_arr.push_back(aliens[i].createShaderProgram());
+	}
+	std::cout << vao_arr.size() << " VAOs created" << std::endl;
+
+	for (int i = 0; i < aliens.size(); i++) {
+		++count;
+
 		if (i % 11 == 0 && i != 0) {
-			yOffset -= 0.15f;
+			yOffset -= 2.0f; // 0.15f
 			xOffset = 0.0f;
 		}
 
-		alien_arr[i].arrange(xOffset, yOffset);
+		aliens[i].position.x += xOffset;
+		aliens[i].position.y += yOffset;
 
-		xOffset += 0.15f;
+		xOffset += 2.5f;
+		std::cout << count << " aliens arranged" << std::endl;
 	}
+	std::cout << "All aliens arranged successfully" << std::endl;
 }
 
 void setupBarriers(float xOffset, int it) {
@@ -642,7 +672,7 @@ void setupEntities() {
 	/* Creating shader programs */
 	sprog_arr.push_back(player->createShaderProgram());
 	sprog_arr.push_back(bullets->createShaderProgram());
-	sprog_arr.push_back(alien_arr[0].createShaderProgram());
+	sprog_arr.push_back(aliens[0].createShaderProgram());
 	sprog_arr.push_back(alienBullet->createShaderProgram());
 	sprog_arr.push_back(barrier_arr[0].createShaderProgram());
 	sprog_arr.push_back(text_arr[0]->createShaderProgram());
@@ -696,9 +726,9 @@ int main(int argc, char *argv[]) {
 
 	std::cout << "Attempting to load model" << std::endl;
 	//model testmodel("bin/assets/cube/cube.obj");
-	mTest->loadModel("bin/assets/cube/cube.obj");
+	//mTest->loadModel("bin/assets/models/spaceinvader.obj");
 	std::cout << "Cube loaded. Attempting to create shader:" << std::endl;
-	sprog_arr.push_back(mTest->createShaderProgram());
+	//sprog_arr.push_back(mTest->createShaderProgram());
 	std::cout << "Shader created" << std::endl;
 
 	

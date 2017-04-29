@@ -23,6 +23,8 @@ public:
 	model();
 	model(GLchar* path);
 	~model();
+
+	glm::vec3 position{ -10.0f, 10.0f, 0.0f };
 	
 	std::vector<Texture> textures_loaded;
 	std::vector<Mesh> meshes;
