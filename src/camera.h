@@ -81,7 +81,7 @@ public:
 	GLfloat zoom;
 
 	glm::mat4 getViewMatrix();
-	void processKeyboard(Camera_Movement direction, GLfloat dt);
+	void processKeyboard(Camera_Movement direction);
 	void updateCameraVectors();	
 };
 

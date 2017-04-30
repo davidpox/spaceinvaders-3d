@@ -31,14 +31,21 @@
 
 SDL_Window *win = nullptr;
 SDL_GLContext mainContext;
-PlayerShip *player = new PlayerShip();
-bullet *bullets = new bullet("player");
-bullet *alienBullet = new bullet("alien");
+PlayerShip player;
+//bullet *bullets = new bullet("player");
+//bullet *alienBullet = new bullet("alien");
+
+bullet playerBullet("player");
+bullet alienBullet("alien");
+barrier barriers;
+
 //alien *aliens = new alien();
 shotHandler *sh = new shotHandler();
 gamestate *gs = new gamestate();
-camera cam(glm::vec3(0.0f, 0.0f, 30.0f));
+camera cam(glm::vec3(0.0f, 0.0f, 40.0f));
 model *mTest = new model();
+barrier bs;
+SolidWall sw;
 
 
 std::vector<GLuint> sprog_arr;
@@ -49,7 +56,9 @@ std::vector<barrier> barrier_arr;
 std::vector<TextHandler *> text_arr;
 std::vector<PlayerShip *> lives_arr;
 std::vector<Background> bg_arr;
-std::vector<SolidWall> world_bounds;
+
+
+GLint program;
 
 bool isGameRunning;
 
@@ -165,14 +174,13 @@ void getInput(float dt) {
 			{
 			case SDLK_a:
 			case SDLK_d:
-				player->movePlayer(ev.key.keysym.sym);
-				bg_arr[0].moveBG(ev.key.keysym.sym);	// Bottom and Top background tex are intialised with different move speeds, creating parallax
-				bg_arr[1].moveBG(ev.key.keysym.sym);
-				//cam->moveCam(ev.key.keysym.sym, player->position);
-				bullets->resetPositionX(player->position, ev.key.keysym.sym);
+				player.movePlayer(ev.key.keysym.sym);
+				//bg_arr[0].moveBG(ev.key.keysym.sym);	// Bottom and Top background tex are intialised with different move speeds, creating parallax
+				//bg_arr[1].moveBG(ev.key.keysym.sym);
+				playerBullet.resetPositionX(player.position, ev.key.keysym.sym);
 				break;
 			case SDLK_SPACE:
-				bullets->shootBullet();
+				playerBullet.shootBullet();
 				break;
 			case SDLK_ESCAPE:
 				SDL_Quit();
@@ -196,21 +204,21 @@ void getInput(float dt) {
 				break;
 			}
 			if (ev.key.keysym.sym == SDLK_KP_8)
-				cam.processKeyboard(FORWARD, dt);
+				cam.processKeyboard(FORWARD);
 			if (ev.key.keysym.sym == SDLK_KP_5)
-				cam.processKeyboard(BACKWARD, dt);
+				cam.processKeyboard(BACKWARD);
 			if (ev.key.keysym.sym == SDLK_KP_4)
-				cam.processKeyboard(LEFT, dt);
+				cam.processKeyboard(LEFT);
 			if (ev.key.keysym.sym == SDLK_KP_6)
-				cam.processKeyboard(RIGHT, dt);
+				cam.processKeyboard(RIGHT);
 			if (ev.key.keysym.sym == SDLK_KP_7)
-				cam.processKeyboard(DOWN, dt);
+				cam.processKeyboard(DOWN);
 			if (ev.key.keysym.sym == SDLK_KP_9)
-				cam.processKeyboard(UP, dt);
+				cam.processKeyboard(UP);
 			if (ev.key.keysym.sym == SDLK_KP_1)
-				cam.processKeyboard(ROTL, dt);
+				cam.processKeyboard(ROTL);
 			if (ev.key.keysym.sym == SDLK_KP_3)
-				cam.processKeyboard(ROTR, dt);
+				cam.processKeyboard(ROTR);
 
 		}
 		else if (ev.type == SDL_WINDOWEVENT) {
@@ -236,24 +244,23 @@ void updateScore() {
 }
 
 void moveAliens() {
-	std::cout << "move called" << std::endl;
 	if (!gs->isMovingLeft) {
-		if (gs->alienMoveCounter < 3) {
+		if (gs->alienMoveCounter < 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(2.5f, 0.0f, 0.0f));
 					aliens[i].position.x += 2.5f;
-					std::cout << "moved" << std::endl;
+					//std::cout << "moved" << std::endl;
 				}
 			}
 			gs->alienMoveCounter++;
 		}
-		else if (gs->alienMoveCounter == 3) {
+		else if (gs->alienMoveCounter == 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(0.0f, -2.5f, 0.0f));
 					aliens[i].position.y -= 2.5f;
-					std::cout << "moved" << std::endl;
+					//std::cout << "moved" << std::endl;
 				}
 			}
 			gs->alienMoveSpeed += 0.15f;
@@ -262,22 +269,22 @@ void moveAliens() {
 		}
 	}
 	else if (gs->isMovingLeft) {
-		if (gs->alienMoveCounter < 3) {
+		if (gs->alienMoveCounter < 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(-2.5f, 0.0f, 0.0f));
 					aliens[i].position.x -= 2.5f;
-					std::cout << "moved" << std::endl;
+					//std::cout << "moved" << std::endl;
 				}
 			}
 			gs->alienMoveCounter++;
 		}
-		else if (gs->alienMoveCounter == 3) {
+		else if (gs->alienMoveCounter == 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(0.0f, -2.5f, 0.0f));
 					aliens[i].position.y -= 2.5f;
-					std::cout << "moved" << std::endl;
+					//std::cout << "moved" << std::endl;
 				}
 			}
 			gs->alienMoveSpeed += 0.15f; // Increase speed by .15f every time Space Invaders shift downwards
@@ -288,67 +295,51 @@ void moveAliens() {
 }
 
 void alienShoot() {
-	/*if (!alienBullet->isActive) {
+	if (!alienBullet.isActive) {
 		int it = sh->getAlien(aliens);
 
 		if (it != -1) {
 			alien alien_t = aliens[it];
 
-			alienBullet->position.x = alien_t.position.x - 0.025f;
-			alienBullet->position.y = alien_t.position.y;
-			alienBullet->_transTranslate = glm::translate(alienBullet->_transTranslate, glm::vec3(alien_t.position.x - 0.025f, alien_t.position.y, 0.0f));
-			alienBullet->isActive = true;
-		}
-	}*/
-}
-
-void degradebarrier() { // breaks one barrier every x seconds 
-	if ((int)barrier_arr.size() > 1) {
-		int barrier_t = glm::linearRand(0, (int)barrier_arr.size() - 1);
-
-		barrier_arr[barrier_t].barrierIndex++;
-		if (barrier_arr[barrier_t].barrierIndex == 3) {
-			barrier_arr.erase(barrier_arr.begin() + barrier_t);
-		}
-		else {
-			barrier_arr[barrier_t].breakBarrier();
+			alienBullet.position.x = alien_t.position.x - 0.025f;
+			alienBullet.position.y = alien_t.position.y;
+			alienBullet._transTranslate = glm::translate(alienBullet._transTranslate, glm::vec3(alien_t.position.x - 0.025f, alien_t.position.y, 0.0f));
+			alienBullet.isActive = true;
 		}
 	}
 }
 
 void update() {
-	if (bullets->isActive) {
-		bullets->_transTranslate = glm::translate(bullets->_transTranslate, glm::vec3(0.0f, 0.08f, 0.0f));
-		bullets->position.y += 0.08f;
-		bullets->distTravelled.y += 0.08f;
+	if (playerBullet.isActive) {
+		playerBullet._transTranslate = glm::translate(playerBullet._transTranslate, glm::vec3(0.0f, 0.5f, 0.0f));
+		playerBullet.position.y += 0.5f;
+		playerBullet.distTravelled.y += 0.5f;
 	}
 
-	if (bullets->position[1] >= 1.0f) {
-		bullets->isActive = false;
-		bullets->resetPositionY();
-		bullets->resetPositionX(player->position, SDLK_UP);
+	if (playerBullet.position[1] >= 15.0f) {
+		playerBullet.isActive = false;
+		playerBullet.resetPositionY();
+		playerBullet.resetPositionX(player.position, SDLK_UP);
 	}
 
-	if (alienBullet->isActive) {
-		alienBullet->_transTranslate = glm::translate(alienBullet->_transTranslate, glm::vec3(0.0f, -0.06f, 0.0f));
-		alienBullet->position.y -= 0.06f;
-		alienBullet->distTravelled.y -= 0.06f;
+	if (alienBullet.isActive) {
+		alienBullet._transTranslate = glm::translate(alienBullet._transTranslate, glm::vec3(0.0f, -0.4f, 0.0f));
+		alienBullet.position.y -= 0.4f;
+		alienBullet.distTravelled.y -= 0.4f;
 	}
-	if (alienBullet->position.y <= -0.9f) {
-		alienBullet->isActive = false;
-		alienBullet->resetPositionAL();
+	if (alienBullet.position.y <= -15.0f) {
+		alienBullet.isActive = false;
+		alienBullet.resetPositionAL();
 	}
 
-	if (gs->alienMoveTimer == (int)(120 / gs->alienMoveSpeed)) { // Move aliens once every two seconds divided by movespeed (e.g. 120 / 1.3 = ~90 seconds instead)
+	if (gs->alienMoveTimer == (int)(120 / gs->alienMoveSpeed)) {
 		moveAliens();
 		for (int i = 0; i < aliens.size(); i++) {
 			if (aliens[i].currentAnimState == 2) {
 				aliens[i].currentAnimState = 1;
-				//aliens[i].changeTexture();
 			}
 			else if (aliens[i].currentAnimState == 1) {
 				aliens[i].currentAnimState = 2;
-			//	aliens[i].changeTexture();
 			}
 		}
 		gs->alienMoveTimer = 0;
@@ -370,15 +361,22 @@ void update() {
 	gs->alienShootTimer++;
 	
 	if (gs->barricadeTimer == 300) {
-		degradebarrier();
+//		degradebarrier();
 		gs->barricadeTimer = 0;
 	}
 	gs->barricadeTimer++;
+
+	for (int i = 0; i < aliens.size(); i++) {
+		if (aliens[i].isDead) {
+			aliens[i].spinoff();
+			if (aliens[i].position.y < -7.5f) {
+				aliens.erase(aliens.begin() + i);
+			}
+		}
+	}
 }
 
 void render() {
-
-	//std::cout << "Rendering" << std::endl;
 
 	glm::vec4 backgroundColour = glm::vec4(0.1, 0.1, 0.1, 1.0);		// R, G, B, A
 	glClearColor(backgroundColour[0], backgroundColour[1], backgroundColour[2], backgroundColour[3]);
@@ -386,129 +384,73 @@ void render() {
 
 	 
 	if (!gs->gameover) {
-
-		
+			
 		glm::mat4 view = cam.getViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
-		GLint modelLoc = glGetUniformLocation(sprog_arr[2], "model");
-		GLint viewLoc = glGetUniformLocation(sprog_arr[2], "view");
-		GLint projLoc = glGetUniformLocation(sprog_arr[2], "projection");
+		glm::mat4 transModel;
+		GLint modelLoc = glGetUniformLocation(program, "model");
+		GLint viewLoc = glGetUniformLocation(program, "view");
+		GLint projLoc = glGetUniformLocation(program, "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
 
-		glUseProgram(sprog_arr[2]);
+		glUseProgram(program);
 		for (int i = 0; i < aliens.size(); i++) {
-			GLint modelLocation = glGetUniformLocation(vao_arr[i + 2], "model");
-			glm::mat4 transModel;
 			transModel = aliens[i]._transTranslate * aliens[i]._transRotate * aliens[i]._transScale;
-			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(transModel));
-			aliens[i].Model.Draw(sprog_arr[2]);
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			aliens[i].Model.Draw(program);
 		}
 
+		transModel = player._transTranslate * player._transRotate * player._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		player.Model.Draw(program);
 
 
+		if (playerBullet.isActive) {
+			transModel = playerBullet._transTranslate * playerBullet._transRotate * playerBullet._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			playerBullet.Model.Draw(program);
+		}
 
-	//	//glUseProgram(sprog_arr[6]);
-	//	for (int i = 0; i < bg_arr.size(); i++) {
-	//		GLint bgTransLocation = glGetUniformLocation(sprog_arr[6], "trans");
-	//		glUniformMatrix4fv(bgTransLocation, 1, GL_FALSE, glm::value_ptr(bg_arr[i]._transTranslate * bg_arr[i]._transRotate * bg_arr[i]._transScale));
-	//		glBindTexture(GL_TEXTURE_2D, bg_arr[i].texture);
-	//		glBindVertexArray(vao_arr[i + 79]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
+		if (alienBullet.isActive) {
+			transModel = alienBullet._transTranslate * alienBullet._transRotate * alienBullet._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			alienBullet.Model.Draw(program);
+		}
 
-		// Player
-		//glUseProgram(sprog_arr[0]);
-		//GLint playertransLocation = glGetUniformLocation(sprog_arr[0], "trans");
-		//glUniformMatrix4fv(playertransLocation, 1, GL_FALSE, glm::value_ptr(player->_transTranslate * player->_transRotate * player->_transScale));
-		//glBindTexture(GL_TEXTURE_2D, player->texture);
-		//glBindVertexArray(vao_arr[0]);
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		//glBindVertexArray(0);
-		//useVPShader();
+		
+		for (int i = 0; i < barriers.barriersLeft.size(); i++) {
+			transModel = barriers.barriersLeft[i]._transTranslate *  barriers.barriersLeft[i]._transRotate *  barriers.barriersLeft[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			barriers.barriersLeft[i].Draw(program);
+		}
+		for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
+			transModel = barriers.barriersMiddle[i]._transTranslate *  barriers.barriersMiddle[i]._transRotate *  barriers.barriersMiddle[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			barriers.barriersMiddle[i].Draw(program);
+		}
+		for (int i = 0; i < barriers.barriersRight.size(); i++) {
+			transModel = barriers.barriersRight[i]._transTranslate *  barriers.barriersRight[i]._transRotate *  barriers.barriersRight[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			barriers.barriersRight[i].Draw(program);
+		}
+		
+		transModel = sw.ModelL._transTranslate * sw.ModelL._transRotate * sw.ModelL._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		sw.ModelL.Draw(program);
 
-	//	if (bullets->isActive) {
-	//		glUseProgram(sprog_arr[1]);
-	//		//bullets->_transTranslate = glm::translate(bullets->_transTranslate, glm::vec3(0.0f, 0.0005f, 0.0f));
-	//		GLint bullettransLocation = glGetUniformLocation(sprog_arr[1], "trans");
-	//		glUniformMatrix4fv(bullettransLocation, 1, GL_FALSE, glm::value_ptr(bullets->_transTranslate * bullets->_transRotate * bullets->_transScale));
+		transModel = sw.ModelR._transTranslate * sw.ModelR._transRotate * sw.ModelR._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		sw.ModelR.Draw(program);
 
-	//		glBindTexture(GL_TEXTURE_2D, bullets->texture);
-	//		glBindVertexArray(vao_arr[1]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//		useVPShader();
-	//	}
+		transModel = sw.ModelT._transTranslate * sw.ModelT._transRotate * sw.ModelT._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		sw.ModelT.Draw(program);
 
-	////	glUseProgram(sprog_arr[2]);
-	//	for (int i = 0; i < aliens.size(); i++) {
-	//		GLint alienstransLocation = glGetUniformLocation(sprog_arr[2], "trans");
-	//		glUniformMatrix4fv(alienstransLocation, 1, GL_FALSE, glm::value_ptr(aliens[i]._transTranslate * aliens[i]._transRotate * aliens[i]._transScale));
-	//		glBindTexture(GL_TEXTURE_2D, aliens[i].texture);
-	//		glBindVertexArray(vao_arr[i + 2]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
-	////	useVPShader();
+		transModel = sw.ModelB._transTranslate * sw.ModelB._transRotate * sw.ModelB._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		sw.ModelB.Draw(program);
 
-
-	//	if (alienBullet->isActive) {
-	//		//glUseProgram(sprog_arr[3]);
-	//		GLint bullettransLocation = glGetUniformLocation(sprog_arr[3], "trans");
-	//		glUniformMatrix4fv(bullettransLocation, 1, GL_FALSE, glm::value_ptr(alienBullet->_transTranslate * alienBullet->_transRotate * alienBullet->_transScale));
-	//		glBindTexture(GL_TEXTURE_2D, alienBullet->texture);
-	//		glBindVertexArray(vao_arr[57]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//		//useVPShader();
-	//	}
-
-	////	glUseProgram(sprog_arr[4]);
-	//	for (int i = 0; i < barrier_arr.size(); i++) {
-	//		GLint barrierTransLoc = glGetUniformLocation(sprog_arr[4], "trans");
-	//		glUniformMatrix4fv(barrierTransLoc, 1, GL_FALSE, glm::value_ptr(barrier_arr[i]._transTranslate * barrier_arr[i]._transRotate * barrier_arr[i]._transScale));
-	//		glBindTexture(GL_TEXTURE_2D, barrier_arr[i].texture);
-	//		glBindVertexArray(vao_arr[i + 58]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
-	////	useVPShader();
-
-	//	glUseProgram(sprog_arr[5]);
-	//	for (int i = 0; i < text_arr.size() - 1; i++) {
-	//		GLint textTransLoc = glGetUniformLocation(sprog_arr[5], "trans");
-
-	//		glUniformMatrix4fv(textTransLoc, 1, GL_FALSE, glm::value_ptr(text_arr[i]->_transTranslate * text_arr[i]->_transRotate * text_arr[i]->_transScale));
-	//		glBindTexture(GL_TEXTURE_2D, text_arr[i]->texture);
-	//		glBindVertexArray(vao_arr[i + 73]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
-	//	useVPShader();
-
-	//	if (gs->playerlives >= 1) {
-	//		glUseProgram(sprog_arr[0]);
-	//		for (int i = 0; i < lives_arr.size(); i++) {
-	//			GLint textTransLoc = glGetUniformLocation(sprog_arr[0], "trans");
-	//			glUniformMatrix4fv(textTransLoc, 1, GL_FALSE, glm::value_ptr(lives_arr[i]->_transTranslate * lives_arr[i]->_transRotate * lives_arr[i]->_transScale));
-	//			glBindTexture(GL_TEXTURE_2D, lives_arr[i]->texture);
-	//			glBindVertexArray(vao_arr[i + 75]);
-	//			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//			glBindVertexArray(0);
-	//		}
-	//		useVPShader();
-	//	}
-
-	//	glUseProgram(sprog_arr[7]);
-	//	for (int i = 0; i < world_bounds.size(); i++) {
-	//		GLint boundsTransLoc = glGetUniformLocation(sprog_arr[7], "trans");
-	//		glUniformMatrix4fv(boundsTransLoc, 1, GL_FALSE, glm::value_ptr(world_bounds[i]._transTranslate * world_bounds[i]._transRotate * world_bounds[i]._transScale));
-	//		glBindVertexArray(vao_arr[i + 81]);
-	//		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
-	// 	useVPShader();
 	}
 
 	else if (gs->gameover) {
@@ -533,14 +475,14 @@ bool checkCollisions(A a, B b) {
 
 
 	left_src = a.position.x;
-	right_src = a.position.x + a.h;
+	right_src = a.position.x + a.size.x;
 	top_src = a.position.y;
-	bottom_src = a.position.y + a.w;
+	bottom_src = a.position.y + a.size.y;
 
 	left_dst = b.position.x;
-	right_dst = b.position.x + b.h;
+	right_dst = b.position.x + b.size.x;
 	top_dst = b.position.y;
-	bottom_dst = b.position.y + b.w;
+	bottom_dst = b.position.y + b.size.y;
 
 	if (bottom_src <= top_dst) {
 		return false;
@@ -557,6 +499,8 @@ bool checkCollisions(A a, B b) {
 	return true;
 }
 
+
+
 void setupAliens() {
 	float xOffset = 0.0f;	// used to initialise positions
 	float yOffset = 0.0f;
@@ -569,7 +513,7 @@ void setupAliens() {
 	}
 	std::cout << aliens.size() << " aliens created" << std::endl;
 
-	/* Then create VAOs for each alien. */
+	/* Then create shaders for each alien. */
 	for (int i = 0; i < aliens.size(); i++) {
 		vao_arr.push_back(aliens[i].createShaderProgram());
 	}
@@ -585,125 +529,99 @@ void setupAliens() {
 
 		aliens[i].position.x += xOffset;
 		aliens[i].position.y += yOffset;
-		aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(aliens[i].position.x, aliens[i].position.y, -5.0f));
+		aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(aliens[i].position.x, aliens[i].position.y, 0.0f));
 
 		xOffset += 2.5f;
 	}
 	std::cout << "All aliens arranged successfully" << std::endl;
 }
 
-void setupBarriers(float xOffset, int it) {
-
-	for (int i = 0; i < 5; i++) {
-		barrier_arr.push_back(barrier());
-	}
-
-	for (int i = 0; i < 5; i++) {
-		vao_arr.push_back(barrier_arr[i + (it * 5)].createSprite("t_" + std::to_string(i + 1)));
-	}
-
-	for (int i = 0; i < 5; i++) {
-		switch (i) {
-		case 0:
-			barrier_arr[i + (it * 5)].arrange(0.0f + xOffset, 0.0f);
-			break;
-		case 1:
-			barrier_arr[i + (it * 5)].arrange(0.1f + xOffset, 0.0f);
-			break;
-		case 2:
-			barrier_arr[i + (it * 5)].arrange(0.2f + xOffset, 0.0f);
-			break;
-		case 3:
-			barrier_arr[i + (it * 5)].arrange(0.0f + xOffset, -0.1f);
-			break;
-		case 4:
-			barrier_arr[i + (it * 5)].arrange(0.2f + xOffset, -0.1f);
-			break;
-		default:
-			std::cout << "Switch error: " << i <<  std::endl;
-			break;
-		}
-	}
-}
-
 void setupEntities() {
 	/* Creating Objects */
-	text_arr.push_back(new TextHandler());
-	text_arr.push_back(new TextHandler());
-	text_arr.push_back(new TextHandler());
+	//text_arr.push_back(new TextHandler());
+	//text_arr.push_back(new TextHandler());
+	//text_arr.push_back(new TextHandler());
 
-	lives_arr.push_back(new PlayerShip());
-	lives_arr.push_back(new PlayerShip());
-	lives_arr.push_back(new PlayerShip());
+	//lives_arr.push_back(new PlayerShip());
+	//lives_arr.push_back(new PlayerShip());
+	//lives_arr.push_back(new PlayerShip());
 
-	bg_arr.push_back(Background(0.005f));
-	bg_arr.push_back(Background(0.01f));
+	//bg_arr.push_back(Background(0.005f));
+	//bg_arr.push_back(Background(0.01f));
 
-	world_bounds.push_back(SolidWall());
-	world_bounds.push_back(SolidWall());
-	world_bounds.push_back(SolidWall());
-	world_bounds.push_back(SolidWall());
+	//world_bounds.push_back(SolidWall());
+	//world_bounds.push_back(SolidWall());
+	//world_bounds.push_back(SolidWall());
+	//world_bounds.push_back(SolidWall());
 
 
 	/* Adding to VAO vector*/
-	vao_arr.push_back(player->createSprite("player"));
-	vao_arr.push_back(bullets->createSprite("bullet"));
-	setupAliens();
-	vao_arr.push_back(alienBullet->createSprite("bullet2"));
-	setupBarriers(0.0f, 0);
-	setupBarriers(0.65f, 1);
-	setupBarriers(1.3f, 2);
-	vao_arr.push_back(text_arr[0]->createSprite("SCORE: 0", 24));
-	vao_arr.push_back(text_arr[1]->createSprite("LIVES: ", 24));
-	vao_arr.push_back(lives_arr[0]->createSprite("player"));
-	vao_arr.push_back(lives_arr[1]->createSprite("player"));
-	vao_arr.push_back(lives_arr[2]->createSprite("player"));
-	vao_arr.push_back(text_arr[2]->createSprite("GAME OVER!", 48));
-	vao_arr.push_back(bg_arr[0].createSprite("background_bottom"));
-	vao_arr.push_back(bg_arr[1].createSprite("background_top"));
-	vao_arr.push_back(world_bounds[0].createSprite());
-	vao_arr.push_back(world_bounds[1].createSprite());
-	vao_arr.push_back(world_bounds[2].createSprite());
-	vao_arr.push_back(world_bounds[3].createSprite());
+	//vao_arr.push_back(player->createSprite("player"));
+	//vao_arr.push_back(playerBullet.createSprite("bullet"));
+	//setupAliens();
+	//vao_arr.push_back(alienBullet.createSprite("bullet2"));
+	//setupBarriers(0.0f, 0);
+	//setupBarriers(0.65f, 1);
+	//setupBarriers(1.3f, 2);
+	//vao_arr.push_back(text_arr[0]->createSprite("SCORE: 0", 24));
+	//vao_arr.push_back(text_arr[1]->createSprite("LIVES: ", 24));
+	////vao_arr.push_back(lives_arr[0]->createSprite("player"));
+	////vao_arr.push_back(lives_arr[1]->createSprite("player"));
+	////vao_arr.push_back(lives_arr[2]->createSprite("player"));
+	//vao_arr.push_back(text_arr[2]->createSprite("GAME OVER!", 48));
+	//vao_arr.push_back(bg_arr[0].createSprite("background_bottom"));
+	//vao_arr.push_back(bg_arr[1].createSprite("background_top"));
+	//vao_arr.push_back(world_bounds[0].createSprite());
+	//vao_arr.push_back(world_bounds[1].createSprite());
+	//vao_arr.push_back(world_bounds[2].createSprite());
+	//vao_arr.push_back(world_bounds[3].createSprite());
 
 
 	/* Creating shader programs */
-	sprog_arr.push_back(player->createShaderProgram());
-	sprog_arr.push_back(bullets->createShaderProgram());
-	sprog_arr.push_back(aliens[0].createShaderProgram());
-	sprog_arr.push_back(alienBullet->createShaderProgram());
-	sprog_arr.push_back(barrier_arr[0].createShaderProgram());
-	sprog_arr.push_back(text_arr[0]->createShaderProgram());
-	sprog_arr.push_back(bg_arr[0].createShaderProgram());
-	sprog_arr.push_back(world_bounds[0].createShaderProgram());
-	//sprog_arr.push_back(cam->createShaderProgram());
+	//sprog_arr.push_back(player.createShaderProgram());
+	//sprog_arr.push_back(playerBullet.createShaderProgram());
+	//sprog_arr.push_back(aliens[0].createShaderProgram());
+	//sprog_arr.push_back(alienBullet.createShaderProgram());
+	//sprog_arr.push_back(barrier_arr[0].createShaderProgram());
+	//sprog_arr.push_back(text_arr[0]->createShaderProgram());
+	//sprog_arr.push_back(bg_arr[0].createShaderProgram());
+	//sprog_arr.push_back(world_bounds[0].createShaderProgram());
+	////sprog_arr.push_back(cam->createShaderProgram());
 	
-
-
-	// Aligns alienbullet to alien. 
-	alienBullet->arrangeToAlien();
-	alienShoot();
-
 	/* Text */
-	text_arr[0]->_transTranslate = glm::translate(text_arr[0]->_transTranslate, glm::vec3(0.05f, 0.05f, 0.0f));
-	text_arr[1]->_transTranslate = glm::translate(text_arr[1]->_transTranslate, glm::vec3(1.0f, 0.05f, 0.0f));
-	text_arr[2]->_transTranslate = glm::translate(text_arr[2]->_transTranslate, glm::vec3(0.7f, 0.9f, 0.0f));
+	//text_arr[0]->_transTranslate = glm::translate(text_arr[0]->_transTranslate, glm::vec3(0.05f, 0.05f, 0.0f));
+	//text_arr[1]->_transTranslate = glm::translate(text_arr[1]->_transTranslate, glm::vec3(1.0f, 0.05f, 0.0f));
+	//text_arr[2]->_transTranslate = glm::translate(text_arr[2]->_transTranslate, glm::vec3(0.7f, 0.9f, 0.0f));
 
-	/* Lives */
-	lives_arr[0]->_transTranslate = glm::translate(lives_arr[0]->_transTranslate, glm::vec3(0.5f, -0.12f, 0.0f));
-	lives_arr[1]->_transTranslate = glm::translate(lives_arr[1]->_transTranslate, glm::vec3(0.65f, -0.12f, 0.0f));
-	lives_arr[2]->_transTranslate = glm::translate(lives_arr[2]->_transTranslate, glm::vec3(0.8f, -0.12f, 0.0f));
+	///* Lives */
+	//lives_arr[0]->_transTranslate = glm::translate(lives_arr[0]->_transTranslate, glm::vec3(0.5f, -0.12f, 0.0f));
+	//lives_arr[1]->_transTranslate = glm::translate(lives_arr[1]->_transTranslate, glm::vec3(0.65f, -0.12f, 0.0f));
+	//lives_arr[2]->_transTranslate = glm::translate(lives_arr[2]->_transTranslate, glm::vec3(0.8f, -0.12f, 0.0f));
 
 
-	/* Walls */
-	world_bounds[0]._transRotate = glm::rotate(world_bounds[0]._transRotate, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	world_bounds[0]._transTranslate = glm::translate(world_bounds[0]._transTranslate, glm::vec3(0.0f, 1.0f, 0.0f));
-	world_bounds[1]._transRotate = glm::rotate(world_bounds[1]._transRotate, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	world_bounds[1]._transTranslate = glm::translate(world_bounds[1]._transTranslate, glm::vec3(0.0f, -1.0f, 0.0f));
-	world_bounds[2]._transTranslate = glm::translate(world_bounds[2]._transTranslate, glm::vec3(-1.0f, 0.0f, 0.0f));
-	world_bounds[3]._transTranslate = glm::translate(world_bounds[3]._transTranslate, glm::vec3(1.0f, 0.0f, 0.0f));
+	///* Walls */
+	//world_bounds[0]._transRotate = glm::rotate(world_bounds[0]._transRotate, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//world_bounds[0]._transTranslate = glm::translate(world_bounds[0]._transTranslate, glm::vec3(0.0f, 1.0f, 0.0f));
+	//world_bounds[1]._transRotate = glm::rotate(world_bounds[1]._transRotate, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//world_bounds[1]._transTranslate = glm::translate(world_bounds[1]._transTranslate, glm::vec3(0.0f, -1.0f, 0.0f));
+	//world_bounds[2]._transTranslate = glm::translate(world_bounds[2]._transTranslate, glm::vec3(-1.0f, 0.0f, 0.0f));
+	//world_bounds[3]._transTranslate = glm::translate(world_bounds[3]._transTranslate, glm::vec3(1.0f, 0.0f, 0.0f));
 
+
+	setupAliens();
+	player.loadModel();
+	program = player.createShaderProgram();
+	alienBullet.loadModel(ENEMY);
+	playerBullet.loadModel(PLAYER);
+
+	alienBullet.arrangeToAlien();
+	alienShoot(); 
+
+	barriers.load();
+
+	sw.load();
 }
+
 
 int main(int argc, char *argv[]) {
 
@@ -732,75 +650,80 @@ int main(int argc, char *argv[]) {
 		getInput(deltatime);
 
 		if (frametime >= 0.01667f) {
+
 			update();
 
 			frametime = 0.0f;
 		}
 
-		//for (int i = 0; i < aliens.size(); i++) {						/* Alien <-> PlayerBullet collision */
-		//	if (checkCollisions(aliens[i], *bullets)) {
-		//		aliens.erase(aliens.begin() + i);
-		//		bullets->isActive = false;
-		//		bullets->resetPositionY();
-		//		bullets->resetPositionX(player->position, SDLK_UP);
-		//		gs->playerscore += 100;
-		//		updateScore();
-		//	}
-		//}
+		if (playerBullet.isActive) {
+			for (int i = 0; i < aliens.size(); i++) {
+				if (!aliens[i].isDead) {
+					if (checkCollisions(aliens[i], playerBullet)) {
+						//aliens.erase(aliens.begin() + i);
+						aliens[i].isDead = true;
+						playerBullet.isActive = false;
+						playerBullet.resetPositionY();
+						playerBullet.resetPositionX(player.position, SDLK_UP);
+						//gs->playerscore += 100;
+						//updateScore();
+					}
+				}
+			}
+		}
 
-		//for (int i = 0; i < barrier_arr.size(); i++) {						/* Barrier <-> PlayerBullet collision */
-		//	if (checkCollisions(barrier_arr[i], *bullets)) {
-		//		barrier_arr[i].barrierIndex++;
-		//		if (barrier_arr[i].barrierIndex == 3) {
-		//			barrier_arr.erase(barrier_arr.begin() + i);
-		//		}
-		//		else {
-		//			barrier_arr[i].breakBarrier();
-		//			bullets->isActive = false;
-		//			bullets->resetPositionY();
-		//			bullets->resetPositionX(player->position, SDLK_UP);
-		//		}
-		//	}
-		//}
-		//for (int i = 0; i < barrier_arr.size(); i++) {
-		//	if (checkCollisions(barrier_arr[i], *alienBullet)) {
-		//		barrier_arr[i].barrierIndex++;
-		//		if (barrier_arr[i].barrierIndex == 3) {
-		//			barrier_arr.erase(barrier_arr.begin() + i);
-		//		}
-		//		else {
-		//			barrier_arr[i].breakBarrier();
-		//			alienBullet->isActive = false;
-		//			alienBullet->resetPositionAL();
-		//		}
-		//	}
-		//}
-		//if (checkCollisions(*alienBullet, *player)) {					/* AlienBullet <-> Player collision */
-		//	gs->playerlives--;
-		//	if (gs->playerlives > 0) {
-		//		lives_arr.pop_back();
-		//	}
+		for (int i = 0; i < barriers.barriersLeft.size(); i++) {
+			if (checkCollisions(playerBullet, barriers.barriersLeft[i])) {
+				barriers.barriersLeft.erase(barriers.barriersLeft.begin() + i);
+				playerBullet.isActive = false;
+				playerBullet.resetPositionY();
+				playerBullet.resetPositionX(player.position, SDLK_UP);
+			}
+		}
+		for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
+			if(checkCollisions(playerBullet, barriers.barriersMiddle[i])) {
+				std::cout << "COLLISION" << std::endl;
+				barriers.barriersMiddle.erase(barriers.barriersMiddle.begin() + i);
+				playerBullet.isActive = false;
+				playerBullet.resetPositionY();
+				playerBullet.resetPositionX(player.position, SDLK_UP);
+			}
+		}
+		for (int i = 0; i < barriers.barriersRight.size(); i++) {
+			if (checkCollisions(playerBullet, barriers.barriersRight[i])) {
+				barriers.barriersRight.erase(barriers.barriersRight.begin() + i);
+				playerBullet.isActive = false;
+				playerBullet.resetPositionY();
+				playerBullet.resetPositionX(player.position, SDLK_UP);
+			}
+		}
+		for (int i = 0; i < barriers.barriersLeft.size(); i++) {
+			if (checkCollisions(alienBullet, barriers.barriersLeft[i])) {
+				barriers.barriersLeft.erase(barriers.barriersLeft.begin() + i);
+				alienBullet.isActive = false;
+				alienBullet.resetPositionAL();
+			}
+		}
+		for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
+			if(checkCollisions(alienBullet, barriers.barriersMiddle[i])) {
+				barriers.barriersMiddle.erase(barriers.barriersMiddle.begin() + i);
+				alienBullet.isActive = false;
+				alienBullet.resetPositionAL();
+			}
+		}
+		for (int i = 0; i < barriers.barriersRight.size(); i++) {
+			if (checkCollisions(alienBullet, barriers.barriersRight[i])) {
+				barriers.barriersRight.erase(barriers.barriersRight.begin() + i);
+				alienBullet.isActive = false;
+				alienBullet.resetPositionAL();
+			}
+		}
 
-		//	alienBullet->isActive = false;
-		//	alienBullet->resetPositionAL();
-		//	if (gs->playerlives == 0) {
-		//		gs->gameover = true;
-		//	}
-		//}
-		//for (int i = 0; i < aliens.size(); i++) {					/* Alien <-> Barrier Collision */
-		//	for (int j = 0; j < barrier_arr.size(); j++) {
-		//		if (checkCollisions(aliens[i], barrier_arr[j])) {
-		//			gs->gameover = true;
-		//		}
-		//	}
-		//}
-
-
+		if (checkCollisions(alienBullet, player)) {
+			std::cout << "PLAYER HIT" << std::endl;
+		}
 		render();
 	}
-
-	delete mTest;
-	delete player;
 
 	SDL_Log("Finished. Cleaning up and closing down\n");
 

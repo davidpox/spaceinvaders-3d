@@ -12,22 +12,20 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class barrier
+#include "model.h"
+
+class barrier : public model
 {
 public:
 	barrier();
 	~barrier();
-	int barrierCount;
-	int barrierIndex;
-	glm::mat4 _transTranslate, _transRotate, _transScale;
-	glm::vec3 position = { -0.75f, -0.55f, 0.0f };
-	SDL_Surface* img;
-	GLuint VAO, VBO, EBO, texture;
-	float h, w;
-	
-	void breakBarrier();
-	void arrange(float xOffset, float yOffset);
-	GLuint createSprite(std::string pic);
-	GLuint createShaderProgram();
+
+	std::vector<model> barriersLeft;
+	std::vector<model> barriersMiddle;
+	std::vector<model> barriersRight;
+
+	void load();
+	void move();
+
 };
 

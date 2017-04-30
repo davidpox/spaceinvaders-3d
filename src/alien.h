@@ -22,12 +22,12 @@ public:
 
 	model Model;
 
-	void moveAlien(SDL_Keycode dir);
-
 	float timer;
 	int spinofftimer;
 	bool isDead;
 	int currentAnimState;
+
+	void spinoff();
 
 };
 

@@ -26,27 +26,23 @@ public:
 
 	bool isDead;
 	int currentAnimState;
-
-
-	glm::vec3 position{ 0.0f, 0.0f, 0.0f };
-	float h;
-	float w;
 	
-	std::vector<Texture> textures_loaded;
-	std::vector<Mesh> meshes;
-	std::string directory;
+	glm::vec3 position{ 0.0f, 0.0f, 0.0f };
+	glm::vec3 size{ 0.0f, 0.0f, 0.0f };
+	std::string objName;
 
+	void Draw(GLuint shader);
+	glm::mat4 _transRotate, _transTranslate, _transScale;
+	GLuint createShaderProgram();
+	
+private:
 	void loadModel(std::string path);
 	void processNode(aiNode* node, const aiScene* scene);
 	GLint TextureFromFile(const char* path, std::string directory);
 	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
-	GLuint createShaderProgram();
-	void Draw(GLuint shader);
-
-	glm::mat4 _transRotate, _transTranslate, _transScale;
-
-
-
+	std::vector<Texture> textures_loaded;
+	std::vector<Mesh> meshes;
+	std::string directory;
 	std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 };
 

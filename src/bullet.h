@@ -9,16 +9,19 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "model.h"
 
+enum BULLET_TYPE {
+	PLAYER,
+	ENEMY
+};
 
-class bullet
+class bullet : public model
 {
 public:
 	bullet(std::string name);
 	~bullet();
 
-	GLuint createSprite(std::string pic);
-	GLuint createShaderProgram();
 	void shootBullet();
 	void arrangeToAlien();
 	bool isActive;
@@ -27,19 +30,17 @@ public:
 	void resetPositionY();
 	void resetPositionAL();
 
-	glm::vec3 position = {0.0f, -0.775f, 0.0f};
 	glm::vec3 distTravelled = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 alTravel = { 0.0f, 0.0f, 0.0f }; 
 	glm::mat4 _transRotate, _transTranslate, _transScale;
 
-	float h;
-	float w;
-
 	std::string name;
 
+	void loadModel(BULLET_TYPE btype);
 
+	model Model;
 
-	SDL_Surface* img;
-	GLuint VAO, VBO, EBO, texture;
+	BULLET_TYPE type;
+
 };
 
