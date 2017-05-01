@@ -18,12 +18,15 @@ enum Camera_Movement {
 	UP,
 	DOWN,
 	ROTL,
-	ROTR
+	ROTR,
+	POS1,
+	POS2,
+	POS3
 };
 
 const GLfloat YAW = -90.0f;
 const GLfloat PITCH = 0.0f;
-const GLfloat SPEED = 0.1f;
+const GLfloat SPEED = 50.0f;
 const GLfloat SENSITIVITY = 0.25f;
 const GLfloat ZOOM = 45.0f;
 
@@ -81,7 +84,7 @@ public:
 	GLfloat zoom;
 
 	glm::mat4 getViewMatrix();
-	void processKeyboard(Camera_Movement direction);
+	void processKeyboard(Camera_Movement direction, float delta);
 	void updateCameraVectors();	
 };
 

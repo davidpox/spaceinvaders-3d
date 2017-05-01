@@ -29,15 +29,15 @@ void barrier::move() {
 	std::cout << "Grouping barriers" << std::endl;
 	for (int i = 0; i < 5; i++) { // Initial Group
 		barriersLeft[i].position.x -= 10.0f;
-		barriersLeft[i].position.y -= 5.0f;
-		barriersLeft[i]._transTranslate = glm::translate(barriersLeft[i]._transTranslate, glm::vec3(-10.0f, -5.0f, 0.0f));
+		barriersLeft[i].position.y -= 10.0f;
+		barriersLeft[i]._transTranslate = glm::translate(barriersLeft[i]._transTranslate, glm::vec3(-10.0f, -10.0f, 0.0f));
 
 		barriersRight[i].position.x += 10.0f;
-		barriersRight[i].position.y -= 5.0f;
-		barriersRight[i]._transTranslate = glm::translate(barriersRight[i]._transTranslate, glm::vec3(10.0f, -5.0f, 0.0f));
+		barriersRight[i].position.y -= 10.0f;
+		barriersRight[i]._transTranslate = glm::translate(barriersRight[i]._transTranslate, glm::vec3(10.0f, -10.0f, 0.0f));
 
-		barriersMiddle[i].position.y -= 5.0f;
-		barriersMiddle[i]._transTranslate = glm::translate(barriersMiddle[i]._transTranslate, glm::vec3(0.0f, -5.0f, 0.0f));	
+		barriersMiddle[i].position.y -= 10.0f;
+		barriersMiddle[i]._transTranslate = glm::translate(barriersMiddle[i]._transTranslate, glm::vec3(0.0f, -10.0f, 0.0f));	
 	}
 
 	std::cout << "Setting sizes..." << std::endl;

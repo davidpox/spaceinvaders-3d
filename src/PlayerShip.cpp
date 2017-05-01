@@ -33,7 +33,7 @@ void PlayerShip::movePlayer(SDL_Keycode dir) {
 
 void PlayerShip::loadModel() {
 	Model = model("bin/assets/models/playership.obj");
-	_transTranslate = glm::translate(_transTranslate, glm::vec3(0.0f, -10.0f, 0.0f));
-	position.y -= 10.0f;
+	_transTranslate = glm::translate(_transTranslate, glm::vec3(0.0f, -15.0f, 0.0f));
+	position.y -= 15.0f;
 	position.x = 0.0f;
 }

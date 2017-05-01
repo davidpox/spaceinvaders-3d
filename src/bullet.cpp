@@ -81,8 +81,8 @@ void bullet::resetPositionAL() {
 void bullet::loadModel(BULLET_TYPE btype) {
 	if (btype == PLAYER) {
 		Model = model("bin/assets/models/bullet.obj");
-		position.y = -10.0f;
-		_transTranslate = glm::translate(_transTranslate, glm::vec3(0.0f, -10.0f, 0.0f));
+		position.y = -15.0f;
+		_transTranslate = glm::translate(_transTranslate, glm::vec3(0.0f, -15.0f, 0.0f));
 	}
 	else if (btype == ENEMY) {
 		Model = model("bin/assets/models/bullet.obj");

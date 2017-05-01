@@ -10,25 +10,22 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class Background
+#include "model.h"
+
+class Background : public model
 {
 public:
-	Background(float fspeed);
+	Background();
 	~Background();
-
-	GLuint createSprite(std::string pic);
+	void Draw();
+	
 	GLuint createShaderProgram();
-	void moveBG(SDL_Keycode dir);
+	GLuint createCube();
+	GLuint makeCubeMap();
 
-
-	glm::vec3 position = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 distTravelled = { 0.0f, 0.0f, 0.0f };
-	SDL_Surface* img;
-	GLuint VAO, VBO, EBO, texture;
-	glm::mat4 _transRotate, _transTranslate, _transScale;
-
-	int h, w;
-	float speed;
+	GLuint VAO, VBO, EBO;
+	GLuint cubemapTex;
+	GLuint program;
 };
 
 

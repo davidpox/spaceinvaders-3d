@@ -32,8 +32,6 @@
 SDL_Window *win = nullptr;
 SDL_GLContext mainContext;
 PlayerShip player;
-//bullet *bullets = new bullet("player");
-//bullet *alienBullet = new bullet("alien");
 
 bullet playerBullet("player");
 bullet alienBullet("alien");
@@ -42,11 +40,12 @@ barrier barriers;
 //alien *aliens = new alien();
 shotHandler *sh = new shotHandler();
 gamestate *gs = new gamestate();
-camera cam(glm::vec3(0.0f, 0.0f, 40.0f));
+camera cam(glm::vec3(0.0f, 0.0f, 50.0f));
 model *mTest = new model();
 barrier bs;
 SolidWall sw;
 
+Background bg;
 
 std::vector<GLuint> sprog_arr;
 std::vector<GLuint> vao_arr;
@@ -56,6 +55,8 @@ std::vector<barrier> barrier_arr;
 std::vector<TextHandler *> text_arr;
 std::vector<PlayerShip *> lives_arr;
 std::vector<Background> bg_arr;
+
+glm::vec3 lightPos(0.0f, 0.0f, 40.0f);
 
 
 GLint program;
@@ -128,21 +129,15 @@ int init() {
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	if (winWidth > winHeight) {
-		glViewport(winWidth/4, 0, winHeight, winHeight);
-		gs->windowWidth = winHeight;
-		gs->windowHeight = winHeight;
-	}
-	else {
-		glViewport(0, winHeight/4, winWidth, winWidth);
-		gs->windowWidth = winWidth;
-		gs->windowHeight = winWidth;
-	}
+	glViewport(0, 0, screenWidth / 2, screenHeight / 2);
+	gs->windowWidth = screenWidth / 2;
+	gs->windowHeight = screenHeight / 2;
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);		
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	return 0;
 }
 
@@ -175,8 +170,6 @@ void getInput(float dt) {
 			case SDLK_a:
 			case SDLK_d:
 				player.movePlayer(ev.key.keysym.sym);
-				//bg_arr[0].moveBG(ev.key.keysym.sym);	// Bottom and Top background tex are intialised with different move speeds, creating parallax
-				//bg_arr[1].moveBG(ev.key.keysym.sym);
 				playerBullet.resetPositionX(player.position, ev.key.keysym.sym);
 				break;
 			case SDLK_SPACE:
@@ -204,22 +197,27 @@ void getInput(float dt) {
 				break;
 			}
 			if (ev.key.keysym.sym == SDLK_KP_8)
-				cam.processKeyboard(FORWARD);
+				cam.processKeyboard(FORWARD, dt);
 			if (ev.key.keysym.sym == SDLK_KP_5)
-				cam.processKeyboard(BACKWARD);
+				cam.processKeyboard(BACKWARD, dt);
 			if (ev.key.keysym.sym == SDLK_KP_4)
-				cam.processKeyboard(LEFT);
+				cam.processKeyboard(LEFT, dt);
 			if (ev.key.keysym.sym == SDLK_KP_6)
-				cam.processKeyboard(RIGHT);
+				cam.processKeyboard(RIGHT, dt);
 			if (ev.key.keysym.sym == SDLK_KP_7)
-				cam.processKeyboard(DOWN);
+				cam.processKeyboard(DOWN, dt);
 			if (ev.key.keysym.sym == SDLK_KP_9)
-				cam.processKeyboard(UP);
+				cam.processKeyboard(UP, dt);
 			if (ev.key.keysym.sym == SDLK_KP_1)
-				cam.processKeyboard(ROTL);
+				cam.processKeyboard(ROTL, dt);
 			if (ev.key.keysym.sym == SDLK_KP_3)
-				cam.processKeyboard(ROTR);
-
+				cam.processKeyboard(ROTR, dt);
+			if (ev.key.keysym.sym == SDLK_1)
+				cam.processKeyboard(POS1, dt);
+			if (ev.key.keysym.sym == SDLK_2)
+				cam.processKeyboard(POS2, dt);
+			if (ev.key.keysym.sym == SDLK_3)
+				cam.processKeyboard(POS3, dt);
 		}
 		else if (ev.type == SDL_WINDOWEVENT) {
 			if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -378,90 +376,131 @@ void update() {
 
 void render() {
 
-	glm::vec4 backgroundColour = glm::vec4(0.1, 0.1, 0.1, 1.0);		// R, G, B, A
+	glm::vec4 backgroundColour = glm::vec4(0.0, 0.0, 0.0, 1.0);		// R, G, B, A
 	glClearColor(backgroundColour[0], backgroundColour[1], backgroundColour[2], backgroundColour[3]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	// CUBEMAP
+	glDepthFunc(GL_LEQUAL);
+	glUseProgram(bg.program);
+	glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
+	glm::mat4 view = glm::mat4(glm::mat3(cam.getViewMatrix()));
+	glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	bg.Draw();
+	glDepthFunc(GL_LESS);
 
-	 
-	if (!gs->gameover) {
-			
-		glm::mat4 view = cam.getViewMatrix();
-		glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
-		glm::mat4 transModel;
-		GLint modelLoc = glGetUniformLocation(program, "model");
-		GLint viewLoc = glGetUniformLocation(program, "view");
-		GLint projLoc = glGetUniformLocation(program, "projection");
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
+	lightPos = cam.position;
 
-		glUseProgram(program);
-		for (int i = 0; i < aliens.size(); i++) {
-			transModel = aliens[i]._transTranslate * aliens[i]._transRotate * aliens[i]._transScale;
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-			aliens[i].Model.Draw(program);
-		}
+	// LIGHTNING
+	glUseProgram(program);
+	glUniform3fv(glGetUniformLocation(program, "light.position"), 1, &lightPos[0]);
+	glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, &cam.position[0]);
 
-		transModel = player._transTranslate * player._transRotate * player._transScale;
+	glUniform3f(glGetUniformLocation(program, "light.ambient"), 0.2f, 0.2f, 0.2f);
+	glUniform3f(glGetUniformLocation(program, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+	glUniform3f(glGetUniformLocation(program, "light.specular"), 1.0f, 1.0f, 1.0f);
+
+	glUniform3f(glGetUniformLocation(program, "material.specular"), 0.5f, 0.5f, 0.5f);
+	glUniform1f(glGetUniformLocation(program, "light.shininess"), 32.0f);
+
+	glUniform1f(glGetUniformLocation(program, "light.constant"), 1.0f);
+	glUniform1f(glGetUniformLocation(program, "light.linear"), 0.007f);
+	glUniform1f(glGetUniformLocation(program, "light.quadratic"), 0.0002f);
+
+
+	// MODELS
+	//projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
+	view = cam.getViewMatrix();
+	glm::mat4 transModel;
+	GLint modelLoc = glGetUniformLocation(program, "model");
+	GLint viewLoc = glGetUniformLocation(program, "view");
+	GLint projLoc = glGetUniformLocation(program, "projection");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
+
+	for (int i = 0; i < aliens.size(); i++) {
+		transModel = aliens[i]._transTranslate * aliens[i]._transRotate * aliens[i]._transScale;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		player.Model.Draw(program);
-
-
-		if (playerBullet.isActive) {
-			transModel = playerBullet._transTranslate * playerBullet._transRotate * playerBullet._transScale;
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-			playerBullet.Model.Draw(program);
-		}
-
-		if (alienBullet.isActive) {
-			transModel = alienBullet._transTranslate * alienBullet._transRotate * alienBullet._transScale;
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-			alienBullet.Model.Draw(program);
-		}
-
-		
-		for (int i = 0; i < barriers.barriersLeft.size(); i++) {
-			transModel = barriers.barriersLeft[i]._transTranslate *  barriers.barriersLeft[i]._transRotate *  barriers.barriersLeft[i]._transScale;
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-			barriers.barriersLeft[i].Draw(program);
-		}
-		for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
-			transModel = barriers.barriersMiddle[i]._transTranslate *  barriers.barriersMiddle[i]._transRotate *  barriers.barriersMiddle[i]._transScale;
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-			barriers.barriersMiddle[i].Draw(program);
-		}
-		for (int i = 0; i < barriers.barriersRight.size(); i++) {
-			transModel = barriers.barriersRight[i]._transTranslate *  barriers.barriersRight[i]._transRotate *  barriers.barriersRight[i]._transScale;
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-			barriers.barriersRight[i].Draw(program);
-		}
-		
-		transModel = sw.ModelL._transTranslate * sw.ModelL._transRotate * sw.ModelL._transScale;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		sw.ModelL.Draw(program);
-
-		transModel = sw.ModelR._transTranslate * sw.ModelR._transRotate * sw.ModelR._transScale;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		sw.ModelR.Draw(program);
-
-		transModel = sw.ModelT._transTranslate * sw.ModelT._transRotate * sw.ModelT._transScale;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		sw.ModelT.Draw(program);
-
-		transModel = sw.ModelB._transTranslate * sw.ModelB._transRotate * sw.ModelB._transScale;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		sw.ModelB.Draw(program);
-
+		aliens[i].Model.Draw(program);
 	}
 
-	else if (gs->gameover) {
-		glUseProgram(sprog_arr[5]);
-		GLint textTransLoc = glGetUniformLocation(sprog_arr[5], "trans");
-		glUniformMatrix4fv(textTransLoc, 1, GL_FALSE, glm::value_ptr(text_arr[2]->_transTranslate * text_arr[2]->_transRotate * text_arr[2]->_transScale));
-		glBindTexture(GL_TEXTURE_2D, text_arr[2]->texture);
-		glBindVertexArray(vao_arr[78]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+	transModel = player._transTranslate * player._transRotate * player._transScale;
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+	player.Model.Draw(program);
+
+
+	if (playerBullet.isActive) {
+		transModel = playerBullet._transTranslate * playerBullet._transRotate * playerBullet._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		playerBullet.Model.Draw(program);
 	}
+
+	if (alienBullet.isActive) {
+		transModel = alienBullet._transTranslate * alienBullet._transRotate * alienBullet._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		alienBullet.Model.Draw(program);
+	}
+
+		
+	for (int i = 0; i < barriers.barriersLeft.size(); i++) {
+		transModel = barriers.barriersLeft[i]._transTranslate *  barriers.barriersLeft[i]._transRotate *  barriers.barriersLeft[i]._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		barriers.barriersLeft[i].Draw(program);
+	}
+	for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
+		transModel = barriers.barriersMiddle[i]._transTranslate *  barriers.barriersMiddle[i]._transRotate *  barriers.barriersMiddle[i]._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		barriers.barriersMiddle[i].Draw(program);
+	}
+	for (int i = 0; i < barriers.barriersRight.size(); i++) {
+		transModel = barriers.barriersRight[i]._transTranslate *  barriers.barriersRight[i]._transRotate *  barriers.barriersRight[i]._transScale;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+		barriers.barriersRight[i].Draw(program);
+	}
+		
+	transModel = sw.ModelL._transTranslate * sw.ModelL._transRotate * sw.ModelL._transScale;
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+	sw.ModelL.Draw(program);
+
+	transModel = sw.ModelR._transTranslate * sw.ModelR._transRotate * sw.ModelR._transScale;
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+	sw.ModelR.Draw(program);
+
+	transModel = sw.ModelT._transTranslate * sw.ModelT._transRotate * sw.ModelT._transScale;
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+	sw.ModelT.Draw(program);
+
+	transModel = sw.ModelB._transTranslate * sw.ModelB._transRotate * sw.ModelB._transScale;
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+	sw.ModelB.Draw(program);
+
+	// WORKING CUBEMAP
+	//glDepthFunc(GL_LEQUAL);
+	//glUseProgram(bg.program);
+	//view = glm::mat4(glm::mat3(cam.getViewMatrix()));
+	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	//bg.Draw();
+	//glDepthFunc(GL_LESS);
+	// ^^^^^^ WORKING
+
+	//glDepthFunc(GL_LEQUAL);
+	//glUseProgram(bg.program);
+	//view = glm::mat4(glm::mat3(cam.getViewMatrix()));
+	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	//glBindVertexArray(bg.VAO);
+	//glActiveTexture(GL_TEXTURE0);
+	//glUniform1i(glGetUniformLocation(bg.program, "skybox"), 0);
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, bg.cubemapTex);
+	//glDrawArrays(GL_TRIANGLES, 0, 36);
+	//glBindVertexArray(0);
+	//glDepthFunc(GL_LESS);
+
+	//std::cout << "RENDER - OPENGL: " << glGetError() << std::endl;
+
+
 
 	SDL_GL_SwapWindow(win);
 }
@@ -614,12 +653,22 @@ void setupEntities() {
 	alienBullet.loadModel(ENEMY);
 	playerBullet.loadModel(PLAYER);
 
-	alienBullet.arrangeToAlien();
 	alienShoot(); 
 
 	barriers.load();
 
 	sw.load();
+
+	/*bg.createCube();
+	bg.cubemapTex = bg.makeCubeMap();
+	bg.program = bg.createShaderProgram();*/
+
+	bg.makeCubeMap();
+	bg.createShaderProgram();
+	bg.createCube();
+	// LIGHT
+	std::cout << "LIGHT SETUP" << std::endl;
+	glUniform1i(glGetUniformLocation(program, "material.diffuse"), 0);
 }
 
 
