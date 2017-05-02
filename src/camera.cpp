@@ -6,7 +6,6 @@ camera::~camera()
 
 glm::mat4 camera::getViewMatrix() {
 	return glm::lookAt(position, position + front, up);
-	//return glm::lookAt((glm::vec3(0.0f, 0.0f, 0.0f) + (20.0f * front)), glm::vec3(0.0f, 0.0f, 0.0f), up);
 }
 
 void camera::processKeyboard(Camera_Movement direction, float delta) {
@@ -32,13 +31,13 @@ void camera::processKeyboard(Camera_Movement direction, float delta) {
 	if (direction == DOWN)
 		position -= up * velocity;
 	if (direction == POS1) {
-		position.z = 50.0f;
+		position = glm::vec3(0.0f, 0.0f, 50.0f);
 		camera_angle = glm::radians(30.0f);
 		cameraRotationMatrix = glm::mat4();
 		cameraRotationMatrix = glm::rotate(cameraRotationMatrix, camera_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	if (direction == POS2) {
-		position.z = 50.0f;
+		position = glm::vec3(0.0f, 0.0f, 50.0f);
 		camera_angle = glm::radians(-30.0f);
 		cameraRotationMatrix = glm::mat4();
 	}
@@ -61,7 +60,3 @@ void camera::updateCameraVectors() {
 	right = glm::normalize(glm::cross(tfront, worldup));
 	up = glm::normalize(glm::cross(right, tfront));
 }
-
-//position -= right * velocity; left
-
-//position += right * velocity; right

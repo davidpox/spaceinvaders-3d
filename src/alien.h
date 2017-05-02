@@ -21,6 +21,8 @@ public:
 	~alien();
 
 	model Model;
+	model Model2;
+	model activeModel;
 
 	float timer;
 	int spinofftimer;

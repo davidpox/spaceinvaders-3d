@@ -2,6 +2,9 @@
 
 alien::alien() {
 	Model = model("bin/assets/models/spaceinvader.obj");
+	Model2 = model("bin/assets/models/spaceinvader2.obj");
+
+
 	position.x = -15.0f;
 	position.y = 15.0f;
 
@@ -15,6 +18,8 @@ alien::alien() {
 	size.y = 1.5f;
 	size.z = 0.2f;
 
+
+	activeModel = Model;
 }
 
 alien::~alien() {}

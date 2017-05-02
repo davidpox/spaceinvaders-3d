@@ -15,7 +15,6 @@
 #include "alien.h"
 #include "gamestate.h"
 #include "barrier.h"
-#include "TextHandler.h"
 #include "Background.h"
 #include "SolidWall.h"
 #include "camera.h"
@@ -32,34 +31,20 @@
 SDL_Window *win = nullptr;
 SDL_GLContext mainContext;
 PlayerShip player;
-
 bullet playerBullet("player");
 bullet alienBullet("alien");
 barrier barriers;
-
-//alien *aliens = new alien();
-shotHandler *sh = new shotHandler();
-gamestate *gs = new gamestate();
+shotHandler sh;
+gamestate gs;
 camera cam(glm::vec3(0.0f, 0.0f, 50.0f));
-model *mTest = new model();
-barrier bs;
 SolidWall sw;
-
 Background bg;
-
-std::vector<GLuint> sprog_arr;
-std::vector<GLuint> vao_arr;
-
 std::vector<alien> aliens;
-std::vector<barrier> barrier_arr;
-std::vector<TextHandler *> text_arr;
-std::vector<PlayerShip *> lives_arr;
-std::vector<Background> bg_arr;
-
 glm::vec3 lightPos(0.0f, 0.0f, 40.0f);
-
-
 GLint program;
+std::vector<PlayerShip> lives;
+
+GLuint test_vao;
 
 bool isGameRunning;
 
@@ -130,8 +115,8 @@ int init() {
 	glewInit();
 
 	glViewport(0, 0, screenWidth / 2, screenHeight / 2);
-	gs->windowWidth = screenWidth / 2;
-	gs->windowHeight = screenHeight / 2;
+	gs.windowWidth = screenWidth / 2;
+	gs.windowHeight = screenHeight / 2;
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);		
@@ -143,22 +128,12 @@ int init() {
 
 void resizeWindow() {
 	int w, h;
-	int tw, th;
 	SDL_GetWindowSize(win, &w, &h);
 
-	if (w >= h) {
-		tw = h;
-		th = h;
-		glViewport(tw/4, 0, tw, th);
-	}
-	if (h > w) {
-		tw = w;
-		th = w;
-		glViewport(0, th/4, tw, th);
-	}
+	glViewport(0, 0, w, h);
 
-	gs->windowHeight = th;
-	gs->windowWidth = tw;
+	gs.windowHeight = h;
+	gs.windowWidth = w;
 }
 
 void getInput(float dt) {
@@ -177,7 +152,7 @@ void getInput(float dt) {
 				break;
 			case SDLK_ESCAPE:
 				SDL_Quit();
-				gs->isGameRunning = false;
+				gs.isGameRunning = false;
 				break;
 			case SDLK_k:
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -225,80 +200,63 @@ void getInput(float dt) {
 			}
 		}
 		else if (ev.type == SDL_QUIT) {
-			gs->isGameRunning = false;
+			gs.isGameRunning = false;
 		}
 	}
 }
 
-void initAliens() {
-	for (int i = 0; i < 55; i++) {
-		aliens.push_back(alien());
-	}
-}
-
-void updateScore() {
-	std::string text = "SCORE: " + std::to_string(gs->playerscore);
-	vao_arr[73] = text_arr[0]->createSprite(text, 24);
-}
-
 void moveAliens() {
-	if (!gs->isMovingLeft) {
-		if (gs->alienMoveCounter < 2) {
+	if (!gs.isMovingLeft) {
+		if (gs.alienMoveCounter < 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(2.5f, 0.0f, 0.0f));
 					aliens[i].position.x += 2.5f;
-					//std::cout << "moved" << std::endl;
 				}
 			}
-			gs->alienMoveCounter++;
+			gs.alienMoveCounter++;
 		}
-		else if (gs->alienMoveCounter == 2) {
+		else if (gs.alienMoveCounter == 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(0.0f, -2.5f, 0.0f));
 					aliens[i].position.y -= 2.5f;
-					//std::cout << "moved" << std::endl;
 				}
 			}
-			gs->alienMoveSpeed += 0.15f;
-			gs->alienMoveCounter = 0;
-			gs->isMovingLeft = true;
+			gs.alienMoveSpeed += 0.15f;
+			gs.alienMoveCounter = 0;
+			gs.isMovingLeft = true;
 		}
 	}
-	else if (gs->isMovingLeft) {
-		if (gs->alienMoveCounter < 2) {
+	else if (gs.isMovingLeft) {
+		if (gs.alienMoveCounter < 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(-2.5f, 0.0f, 0.0f));
 					aliens[i].position.x -= 2.5f;
-					//std::cout << "moved" << std::endl;
 				}
 			}
-			gs->alienMoveCounter++;
+			gs.alienMoveCounter++;
 		}
-		else if (gs->alienMoveCounter == 2) {
+		else if (gs.alienMoveCounter == 2) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					aliens[i]._transTranslate = glm::translate(aliens[i]._transTranslate, glm::vec3(0.0f, -2.5f, 0.0f));
 					aliens[i].position.y -= 2.5f;
-					//std::cout << "moved" << std::endl;
 				}
 			}
-			gs->alienMoveSpeed += 0.15f; // Increase speed by .15f every time Space Invaders shift downwards
-			gs->alienMoveCounter = 0;
-			gs->isMovingLeft = false;
+			gs.alienMoveSpeed += 0.15f; // Increase speed by .15f every time Space Invaders shift downwards
+			gs.alienMoveCounter = 0;
+			gs.isMovingLeft = false;
 		}
 	}
 }
 
 void alienShoot() {
 	if (!alienBullet.isActive) {
-		int it = sh->getAlien(aliens);
-
+		int it = sh.getAlien(aliens);
 		if (it != -1) {
 			alien alien_t = aliens[it];
-
 			alienBullet.position.x = alien_t.position.x - 0.025f;
 			alienBullet.position.y = alien_t.position.y;
 			alienBullet._transTranslate = glm::translate(alienBullet._transTranslate, glm::vec3(alien_t.position.x - 0.025f, alien_t.position.y, 0.0f));
@@ -309,9 +267,9 @@ void alienShoot() {
 
 void update() {
 	if (playerBullet.isActive) {
-		playerBullet._transTranslate = glm::translate(playerBullet._transTranslate, glm::vec3(0.0f, 0.5f, 0.0f));
-		playerBullet.position.y += 0.5f;
-		playerBullet.distTravelled.y += 0.5f;
+		playerBullet._transTranslate = glm::translate(playerBullet._transTranslate, glm::vec3(0.0f, 1.0f, 0.0f));
+		playerBullet.position.y += 1.0f;
+		playerBullet.distTravelled.y += 1.0f;
 	}
 
 	if (playerBullet.position[1] >= 15.0f) {
@@ -321,49 +279,44 @@ void update() {
 	}
 
 	if (alienBullet.isActive) {
-		alienBullet._transTranslate = glm::translate(alienBullet._transTranslate, glm::vec3(0.0f, -0.4f, 0.0f));
-		alienBullet.position.y -= 0.4f;
-		alienBullet.distTravelled.y -= 0.4f;
+		alienBullet._transTranslate = glm::translate(alienBullet._transTranslate, glm::vec3(0.0f, -0.8f, 0.0f));
+		alienBullet.position.y -= 0.8f;
+		alienBullet.distTravelled.y -= 0.8f;
 	}
-	if (alienBullet.position.y <= -15.0f) {
+	if (alienBullet.position.y <= -17.5f) {
 		alienBullet.isActive = false;
 		alienBullet.resetPositionAL();
 	}
 
-	if (gs->alienMoveTimer == (int)(120 / gs->alienMoveSpeed)) {
+	if (gs.alienMoveTimer == (int)(120 / gs.alienMoveSpeed)) {
 		moveAliens();
 		for (int i = 0; i < aliens.size(); i++) {
 			if (aliens[i].currentAnimState == 2) {
+				aliens[i].activeModel = aliens[i].Model;
 				aliens[i].currentAnimState = 1;
 			}
 			else if (aliens[i].currentAnimState == 1) {
+				aliens[i].activeModel = aliens[i].Model2;
 				aliens[i].currentAnimState = 2;
 			}
 		}
-		gs->alienMoveTimer = 0;
+		gs.alienMoveTimer = 0;
 	}
 	else {
-		gs->alienMoveTimer++;
+		gs.alienMoveTimer++;
 	}
 
 	if (aliens.size() == 0) {
-		gs->gameover = true;
+		gs.gameover = true;
 	}
 
-	if (gs->alienShootTimer == gs->rndShot * 60) {
+	if (gs.alienShootTimer == gs.rndShot * 60) {
 		alienShoot();
-		gs->alienShootTimer = 0;
-		gs->rndShot = glm::linearRand(1, 3);
+		gs.alienShootTimer = 0;
+		gs.rndShot = glm::linearRand(1, 3);
 
 	}
-	gs->alienShootTimer++;
-	
-	if (gs->barricadeTimer == 300) {
-//		degradebarrier();
-		gs->barricadeTimer = 0;
-	}
-	gs->barricadeTimer++;
-
+	gs.alienShootTimer++;
 	for (int i = 0; i < aliens.size(); i++) {
 		if (aliens[i].isDead) {
 			aliens[i].spinoff();
@@ -376,131 +329,125 @@ void update() {
 
 void render() {
 
-	glm::vec4 backgroundColour = glm::vec4(0.0, 0.0, 0.0, 1.0);		// R, G, B, A
+	glm::vec4 backgroundColour = glm::vec4(0.1, 0.1, 0.1, 1.0);		// R, G, B, A
 	glClearColor(backgroundColour[0], backgroundColour[1], backgroundColour[2], backgroundColour[3]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	// CUBEMAP
-	glDepthFunc(GL_LEQUAL);
-	glUseProgram(bg.program);
-	glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
-	glm::mat4 view = glm::mat4(glm::mat3(cam.getViewMatrix()));
-	glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	bg.Draw();
-	glDepthFunc(GL_LESS);
+	//renderOrthographic();
 
-	lightPos = cam.position;
+	if (!gs.gameover) {
 
-	// LIGHTNING
-	glUseProgram(program);
-	glUniform3fv(glGetUniformLocation(program, "light.position"), 1, &lightPos[0]);
-	glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, &cam.position[0]);
+		// CUBEMAP
+		glDepthFunc(GL_LEQUAL);
+		glUseProgram(bg.program);
+		glm::mat4 projection = glm::perspective(glm::radians(cam.zoom), (float)gs.windowWidth / (float)gs.windowHeight, 0.1f, 1000.0f);
+		glm::mat4 view = glm::mat4(glm::mat3(cam.getViewMatrix()));
+		glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		bg.Draw();
+		glDepthFunc(GL_LESS);
 
-	glUniform3f(glGetUniformLocation(program, "light.ambient"), 0.2f, 0.2f, 0.2f);
-	glUniform3f(glGetUniformLocation(program, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-	glUniform3f(glGetUniformLocation(program, "light.specular"), 1.0f, 1.0f, 1.0f);
+		// LIGHTNING
+		glUseProgram(program);
+		lightPos = cam.position;
+		glUniform3fv(glGetUniformLocation(program, "light.position"), 1, &lightPos[0]);
+		glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, &cam.position[0]);
 
-	glUniform3f(glGetUniformLocation(program, "material.specular"), 0.5f, 0.5f, 0.5f);
-	glUniform1f(glGetUniformLocation(program, "light.shininess"), 32.0f);
+		glUniform3f(glGetUniformLocation(program, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(program, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(program, "light.specular"), 1.0f, 1.0f, 1.0f);
 
-	glUniform1f(glGetUniformLocation(program, "light.constant"), 1.0f);
-	glUniform1f(glGetUniformLocation(program, "light.linear"), 0.007f);
-	glUniform1f(glGetUniformLocation(program, "light.quadratic"), 0.0002f);
+		glUniform3f(glGetUniformLocation(program, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(program, "light.shininess"), 32.0f);
+
+		glUniform1f(glGetUniformLocation(program, "light.constant"), 1.0f);
+		glUniform1f(glGetUniformLocation(program, "light.linear"), 0.007f);
+		glUniform1f(glGetUniformLocation(program, "light.quadratic"), 0.0002f);
+
+		// MODELS
+		//projection = glm::perspective(glm::radians(cam.zoom), (float)gs.windowWidth / (float)gs.windowHeight, 0.1f, 1000.0f);
+		view = cam.getViewMatrix();
+		glm::mat4 transModel;
+		GLint modelLoc = glGetUniformLocation(program, "model");
+		GLint viewLoc = glGetUniformLocation(program, "view");
+		GLint projLoc = glGetUniformLocation(program, "projection");
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
 
 
-	// MODELS
-	//projection = glm::perspective(glm::radians(cam.zoom), (float)gs->windowWidth / (float)gs->windowHeight, 0.1f, 1000.0f);
-	view = cam.getViewMatrix();
-	glm::mat4 transModel;
-	GLint modelLoc = glGetUniformLocation(program, "model");
-	GLint viewLoc = glGetUniformLocation(program, "view");
-	GLint projLoc = glGetUniformLocation(program, "projection");
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view * cam.cameraRotationMatrix));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));// *cam.cameraRotationMatrix));
 
-	for (int i = 0; i < aliens.size(); i++) {
-		transModel = aliens[i]._transTranslate * aliens[i]._transRotate * aliens[i]._transScale;
+		for (int i = 0; i < aliens.size(); i++) {
+			transModel = aliens[i]._transTranslate * aliens[i]._transRotate * aliens[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			aliens[i].activeModel.Draw(program);
+		}
+
+		transModel = player._transTranslate * player._transRotate * player._transScale;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		aliens[i].Model.Draw(program);
-	}
-
-	transModel = player._transTranslate * player._transRotate * player._transScale;
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-	player.Model.Draw(program);
+		player.Model.Draw(program);
 
 
-	if (playerBullet.isActive) {
-		transModel = playerBullet._transTranslate * playerBullet._transRotate * playerBullet._transScale;
+		if (playerBullet.isActive) {
+			transModel = playerBullet._transTranslate * playerBullet._transRotate * playerBullet._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			playerBullet.Model.Draw(program);
+		}
+
+		if (alienBullet.isActive) {
+			transModel = alienBullet._transTranslate * alienBullet._transRotate * alienBullet._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			alienBullet.Model.Draw(program);
+		}
+
+
+		for (int i = 0; i < barriers.barriersLeft.size(); i++) {
+			transModel = barriers.barriersLeft[i]._transTranslate *  barriers.barriersLeft[i]._transRotate *  barriers.barriersLeft[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			barriers.barriersLeft[i].Draw(program);
+		}
+		for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
+			transModel = barriers.barriersMiddle[i]._transTranslate *  barriers.barriersMiddle[i]._transRotate *  barriers.barriersMiddle[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			barriers.barriersMiddle[i].Draw(program);
+		}
+		for (int i = 0; i < barriers.barriersRight.size(); i++) {
+			transModel = barriers.barriersRight[i]._transTranslate *  barriers.barriersRight[i]._transRotate *  barriers.barriersRight[i]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			barriers.barriersRight[i].Draw(program);
+		}
+
+		transModel = sw.ModelL._transTranslate * sw.ModelL._transRotate * sw.ModelL._transScale;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		playerBullet.Model.Draw(program);
-	}
+		sw.ModelL.Draw(program);
 
-	if (alienBullet.isActive) {
-		transModel = alienBullet._transTranslate * alienBullet._transRotate * alienBullet._transScale;
+		transModel = sw.ModelR._transTranslate * sw.ModelR._transRotate * sw.ModelR._transScale;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		alienBullet.Model.Draw(program);
-	}
+		sw.ModelR.Draw(program);
 
-		
-	for (int i = 0; i < barriers.barriersLeft.size(); i++) {
-		transModel = barriers.barriersLeft[i]._transTranslate *  barriers.barriersLeft[i]._transRotate *  barriers.barriersLeft[i]._transScale;
+		transModel = sw.ModelT._transTranslate * sw.ModelT._transRotate * sw.ModelT._transScale;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		barriers.barriersLeft[i].Draw(program);
-	}
-	for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
-		transModel = barriers.barriersMiddle[i]._transTranslate *  barriers.barriersMiddle[i]._transRotate *  barriers.barriersMiddle[i]._transScale;
+		sw.ModelT.Draw(program);
+
+		transModel = sw.ModelB._transTranslate * sw.ModelB._transRotate * sw.ModelB._transScale;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		barriers.barriersMiddle[i].Draw(program);
+		sw.ModelB.Draw(program);
+
+		if (lives.size() >= 1) {
+			if (lives.size() >= 2) {
+				if (lives.size() == 3) {
+					transModel = lives[2]._transTranslate * lives[2]._transRotate * lives[2]._transScale;
+					glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+					lives[2].Model.Draw(program);
+				}
+				transModel = lives[1]._transTranslate * lives[1]._transRotate * lives[1]._transScale;
+				glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+				lives[1].Model.Draw(program);
+			}
+			transModel = lives[0]._transTranslate * lives[0]._transRotate * lives[0]._transScale;
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
+			lives[0].Model.Draw(program);
+		}
 	}
-	for (int i = 0; i < barriers.barriersRight.size(); i++) {
-		transModel = barriers.barriersRight[i]._transTranslate *  barriers.barriersRight[i]._transRotate *  barriers.barriersRight[i]._transScale;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-		barriers.barriersRight[i].Draw(program);
-	}
-		
-	transModel = sw.ModelL._transTranslate * sw.ModelL._transRotate * sw.ModelL._transScale;
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-	sw.ModelL.Draw(program);
-
-	transModel = sw.ModelR._transTranslate * sw.ModelR._transRotate * sw.ModelR._transScale;
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-	sw.ModelR.Draw(program);
-
-	transModel = sw.ModelT._transTranslate * sw.ModelT._transRotate * sw.ModelT._transScale;
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-	sw.ModelT.Draw(program);
-
-	transModel = sw.ModelB._transTranslate * sw.ModelB._transRotate * sw.ModelB._transScale;
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transModel));
-	sw.ModelB.Draw(program);
-
-	// WORKING CUBEMAP
-	//glDepthFunc(GL_LEQUAL);
-	//glUseProgram(bg.program);
-	//view = glm::mat4(glm::mat3(cam.getViewMatrix()));
-	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	//bg.Draw();
-	//glDepthFunc(GL_LESS);
-	// ^^^^^^ WORKING
-
-	//glDepthFunc(GL_LEQUAL);
-	//glUseProgram(bg.program);
-	//view = glm::mat4(glm::mat3(cam.getViewMatrix()));
-	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	//glUniformMatrix4fv(glGetUniformLocation(bg.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	//glBindVertexArray(bg.VAO);
-	//glActiveTexture(GL_TEXTURE0);
-	//glUniform1i(glGetUniformLocation(bg.program, "skybox"), 0);
-	//glBindTexture(GL_TEXTURE_CUBE_MAP, bg.cubemapTex);
-	//glDrawArrays(GL_TRIANGLES, 0, 36);
-	//glBindVertexArray(0);
-	//glDepthFunc(GL_LESS);
-
-	//std::cout << "RENDER - OPENGL: " << glGetError() << std::endl;
-
-
 
 	SDL_GL_SwapWindow(win);
 }
@@ -547,22 +494,14 @@ void setupAliens() {
 
 	/* Fill alien vector with aliens */
 	for (int i = 0; i < 55; i++) {
-		//aliens.push_back(model("bin/assets/models/spaceinvader.obj"));
 		aliens.push_back(alien());
 	}
 	std::cout << aliens.size() << " aliens created" << std::endl;
-
-	/* Then create shaders for each alien. */
-	for (int i = 0; i < aliens.size(); i++) {
-		vao_arr.push_back(aliens[i].createShaderProgram());
-	}
-	std::cout << vao_arr.size() << " VAOs created" << std::endl;
-
 	for (int i = 0; i < aliens.size(); i++) {
 		++count;
 
 		if (i % 11 == 0 && i != 0) {
-			yOffset -= 2.0f; // 0.15f
+			yOffset -= 2.0f; 
 			xOffset = 0.0f;
 		}
 
@@ -577,104 +516,45 @@ void setupAliens() {
 
 void setupEntities() {
 	/* Creating Objects */
-	//text_arr.push_back(new TextHandler());
-	//text_arr.push_back(new TextHandler());
-	//text_arr.push_back(new TextHandler());
-
-	//lives_arr.push_back(new PlayerShip());
-	//lives_arr.push_back(new PlayerShip());
-	//lives_arr.push_back(new PlayerShip());
-
-	//bg_arr.push_back(Background(0.005f));
-	//bg_arr.push_back(Background(0.01f));
-
-	//world_bounds.push_back(SolidWall());
-	//world_bounds.push_back(SolidWall());
-	//world_bounds.push_back(SolidWall());
-	//world_bounds.push_back(SolidWall());
-
-
-	/* Adding to VAO vector*/
-	//vao_arr.push_back(player->createSprite("player"));
-	//vao_arr.push_back(playerBullet.createSprite("bullet"));
-	//setupAliens();
-	//vao_arr.push_back(alienBullet.createSprite("bullet2"));
-	//setupBarriers(0.0f, 0);
-	//setupBarriers(0.65f, 1);
-	//setupBarriers(1.3f, 2);
-	//vao_arr.push_back(text_arr[0]->createSprite("SCORE: 0", 24));
-	//vao_arr.push_back(text_arr[1]->createSprite("LIVES: ", 24));
-	////vao_arr.push_back(lives_arr[0]->createSprite("player"));
-	////vao_arr.push_back(lives_arr[1]->createSprite("player"));
-	////vao_arr.push_back(lives_arr[2]->createSprite("player"));
-	//vao_arr.push_back(text_arr[2]->createSprite("GAME OVER!", 48));
-	//vao_arr.push_back(bg_arr[0].createSprite("background_bottom"));
-	//vao_arr.push_back(bg_arr[1].createSprite("background_top"));
-	//vao_arr.push_back(world_bounds[0].createSprite());
-	//vao_arr.push_back(world_bounds[1].createSprite());
-	//vao_arr.push_back(world_bounds[2].createSprite());
-	//vao_arr.push_back(world_bounds[3].createSprite());
-
-
-	/* Creating shader programs */
-	//sprog_arr.push_back(player.createShaderProgram());
-	//sprog_arr.push_back(playerBullet.createShaderProgram());
-	//sprog_arr.push_back(aliens[0].createShaderProgram());
-	//sprog_arr.push_back(alienBullet.createShaderProgram());
-	//sprog_arr.push_back(barrier_arr[0].createShaderProgram());
-	//sprog_arr.push_back(text_arr[0]->createShaderProgram());
-	//sprog_arr.push_back(bg_arr[0].createShaderProgram());
-	//sprog_arr.push_back(world_bounds[0].createShaderProgram());
-	////sprog_arr.push_back(cam->createShaderProgram());
-	
-	/* Text */
-	//text_arr[0]->_transTranslate = glm::translate(text_arr[0]->_transTranslate, glm::vec3(0.05f, 0.05f, 0.0f));
-	//text_arr[1]->_transTranslate = glm::translate(text_arr[1]->_transTranslate, glm::vec3(1.0f, 0.05f, 0.0f));
-	//text_arr[2]->_transTranslate = glm::translate(text_arr[2]->_transTranslate, glm::vec3(0.7f, 0.9f, 0.0f));
-
-	///* Lives */
-	//lives_arr[0]->_transTranslate = glm::translate(lives_arr[0]->_transTranslate, glm::vec3(0.5f, -0.12f, 0.0f));
-	//lives_arr[1]->_transTranslate = glm::translate(lives_arr[1]->_transTranslate, glm::vec3(0.65f, -0.12f, 0.0f));
-	//lives_arr[2]->_transTranslate = glm::translate(lives_arr[2]->_transTranslate, glm::vec3(0.8f, -0.12f, 0.0f));
-
-
-	///* Walls */
-	//world_bounds[0]._transRotate = glm::rotate(world_bounds[0]._transRotate, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//world_bounds[0]._transTranslate = glm::translate(world_bounds[0]._transTranslate, glm::vec3(0.0f, 1.0f, 0.0f));
-	//world_bounds[1]._transRotate = glm::rotate(world_bounds[1]._transRotate, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//world_bounds[1]._transTranslate = glm::translate(world_bounds[1]._transTranslate, glm::vec3(0.0f, -1.0f, 0.0f));
-	//world_bounds[2]._transTranslate = glm::translate(world_bounds[2]._transTranslate, glm::vec3(-1.0f, 0.0f, 0.0f));
-	//world_bounds[3]._transTranslate = glm::translate(world_bounds[3]._transTranslate, glm::vec3(1.0f, 0.0f, 0.0f));
-
-
 	setupAliens();
 	player.loadModel();
 	program = player.createShaderProgram();
 	alienBullet.loadModel(ENEMY);
 	playerBullet.loadModel(PLAYER);
 
+	//Init Alien bullets once
+
 	alienShoot(); 
 
+	// BARRIERS
 	barriers.load();
 
+	//WALLS
 	sw.load();
 
-	/*bg.createCube();
-	bg.cubemapTex = bg.makeCubeMap();
-	bg.program = bg.createShaderProgram();*/
-
+	//CUBEMAP
 	bg.makeCubeMap();
 	bg.createShaderProgram();
 	bg.createCube();
 	// LIGHT
 	std::cout << "LIGHT SETUP" << std::endl;
 	glUniform1i(glGetUniformLocation(program, "material.diffuse"), 0);
+
+
+	lives.resize(3);
+	//LIVES
+	lives[0].loadModel();
+	lives[0]._transTranslate = glm::translate(lives[0]._transTranslate, glm::vec3(-2.5f, -5.0f, 0.0f));
+	lives[1].loadModel();
+	lives[1]._transTranslate = glm::translate(lives[1]._transTranslate, glm::vec3(0.0f, -5.0f, 0.0f));
+	lives[2].loadModel();
+	lives[2]._transTranslate = glm::translate(lives[2]._transTranslate, glm::vec3(2.5f, -5.0f, 0.0f));
 }
 
 
 int main(int argc, char *argv[]) {
 
-	gs->isGameRunning = true;
+	gs.isGameRunning = true;
 	float frametime = 0.0f;
 	int prevtime = 0;
 	int currenttime = 0;
@@ -685,12 +565,13 @@ int main(int argc, char *argv[]) {
 		system("PAUSE");
 		return 1;
 	}
+	std::cout << "OPENGL Version: " << glGetString(GL_VERSION) << std::endl;
 	
 	setupEntities();
-	gs->rndShot = glm::linearRand(1, 3);
-	
-	std::cout << "OPENGL Version: " << glGetString(GL_VERSION) << std::endl;
-	while (gs->isGameRunning) {
+	gs.rndShot = glm::linearRand(1, 3);
+	gs.gameover = false;
+
+	while (gs.isGameRunning) {
 		prevtime = currenttime;
 		currenttime = SDL_GetTicks();
 		deltatime = (currenttime - prevtime) / 1000.0f;
@@ -709,13 +590,10 @@ int main(int argc, char *argv[]) {
 			for (int i = 0; i < aliens.size(); i++) {
 				if (!aliens[i].isDead) {
 					if (checkCollisions(aliens[i], playerBullet)) {
-						//aliens.erase(aliens.begin() + i);
 						aliens[i].isDead = true;
 						playerBullet.isActive = false;
 						playerBullet.resetPositionY();
 						playerBullet.resetPositionX(player.position, SDLK_UP);
-						//gs->playerscore += 100;
-						//updateScore();
 					}
 				}
 			}
@@ -731,7 +609,6 @@ int main(int argc, char *argv[]) {
 		}
 		for (int i = 0; i < barriers.barriersMiddle.size(); i++) {
 			if(checkCollisions(playerBullet, barriers.barriersMiddle[i])) {
-				std::cout << "COLLISION" << std::endl;
 				barriers.barriersMiddle.erase(barriers.barriersMiddle.begin() + i);
 				playerBullet.isActive = false;
 				playerBullet.resetPositionY();
@@ -769,7 +646,12 @@ int main(int argc, char *argv[]) {
 		}
 
 		if (checkCollisions(alienBullet, player)) {
-			std::cout << "PLAYER HIT" << std::endl;
+			if (lives.size() > 1) {
+				lives.pop_back();
+			}
+			else if (lives.size() == 0) {
+				gs.gameover = true;
+			}
 		}
 		render();
 	}
